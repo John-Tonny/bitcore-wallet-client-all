@@ -51,7 +51,7 @@
     "source-map-support": "^0.5.13",
     "sticky-session": "^0.1.0",
     "uuid": "^3.3.2",
-    "vircle-lib": "git+https://git@github.com/John-Tonny/vircle-lib",
+    "vircle-lib": "^8.22.2",
     "winston": "^3.3.3"
   },
   "devDependencies": {
