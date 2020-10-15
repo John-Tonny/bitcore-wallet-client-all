@@ -30,13 +30,13 @@ export class ETHTxProvider {
   getChainId(network: string) {
     let chainId = 1;
     switch (network) {
-      case 'testnet':
       case 'kovan':
         chainId = 42;
         break;
       case 'ropsten':
         chainId = 3;
         break;
+      case 'testnet':
       case 'rinkeby':
         chainId = 4;
         break;
