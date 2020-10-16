@@ -202,6 +202,9 @@ export class BlockchainMonitor {
     let out = data.out;
     if (!out || !out.address || out.address.length < 10) return;
 
+    // john
+    let out_address = out.address;
+
     // For eth, amount = 0 is ok, repeating addr payments are ok (no change).
     if (coin != 'eth') {
       if (!(out.amount > 0)) return;
@@ -219,10 +222,17 @@ export class BlockchainMonitor {
 
       this.lastTx[this.Nix++] = data.txid;
       if (this.Nix >= this.N) this.Nix = 0;
+
+      // john
+      if (network == 'testnet') {
+        out_address += ':testnet';
+      }
     }
 
     logger.debug(`Checking ${coin}:${network}:${out.address} ${out.amount}`);
-    this.storage.fetchAddressByCoin(coin, out.address, (err, address) => {
+    // john
+    // this.storage.fetchAddressByCoin(coin, out.address, (err, address) => {
+    this.storage.fetchAddressByCoin(coin, out_address, (err, address) => {
       if (err) {
         logger.error('Could not fetch addresses from the db');
         return;

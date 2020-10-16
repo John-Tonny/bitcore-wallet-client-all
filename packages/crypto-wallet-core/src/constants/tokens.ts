@@ -24,7 +24,7 @@ export let TOKEN_OPTS = {
     address: '0x056fd409e1d7a124bd7017459dfea2f387b6d5cd'
   },
   '0xec2897d9949c076ba23a2384b604deb0af11ec26': {
-    name: 'VCL Token',
+    name: 'EVIRCLE',
     symbol: 'EVCL',
     decimal: 18,
     address: '0xec2897d9949c076ba23a2384b604deb0af11ec26'
