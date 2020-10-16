@@ -56,6 +56,7 @@ export class Client {
 
     const url = apiUrl + query;
     const signature = this.sign({ method: 'GET', url, payload });
+    logger.info(`'getBalance' | ${url} | ${payload} | ${signature}`);
     return request.get(url, {
       headers: { 'x-signature': signature },
       body: payload,
@@ -162,6 +163,7 @@ export class Client {
     logger.debug('addAddresses:', url, payload);
     const signature = this.sign({ method: 'POST', url, payload });
     const h = { 'x-signature': signature };
+    logger.info(`'importAddress' | ${url} | ${payload} | ${signature}`);
     return request.post(url, {
       headers: h,
       body: payload,
