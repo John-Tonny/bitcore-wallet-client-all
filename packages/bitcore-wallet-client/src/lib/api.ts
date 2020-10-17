@@ -254,9 +254,9 @@ export class API extends EventEmitter {
       var message =
         'Lorem ipsum dolor sit amet, ne amet urbanitas percipitur vim, libris disputando his ne, et facer suavitate qui. Ei quidam laoreet sea. Cu pro dico aliquip gubergren, in mundi postea usu. Ad labitur posidonium interesset duo, est et doctus molestie adipiscing.';
       var priv = xpriv.deriveChild(nonHardenedPath).privateKey;
-      var signature = Utils.signMessage(message, priv);
+      var signature = Utils.signMessage(message, priv, opts.coin);
       var pub = xpub.deriveChild(nonHardenedPath).publicKey;
-      return Utils.verifyMessage(message, signature, pub);
+      return Utils.verifyMessage(message, signature, pub, opts.coin);
     };
 
     var testHardcodedKeys = () => {
@@ -384,6 +384,7 @@ export class API extends EventEmitter {
     var Bip38 = require('bip38');
     var bip38 = new Bip38();
 
+    var coin = opts.coin || 'vcl';
     var privateKeyWif;
     try {
       privateKeyWif = bip38.decrypt(encryptedPrivateKeyBase58, passphrase);
@@ -391,13 +392,13 @@ export class API extends EventEmitter {
       return cb(new Error('Could not decrypt BIP38 private key' + ex));
     }
 
-    var privateKey = new Bitcore.PrivateKey(privateKeyWif);
+    var privateKey = new Bitcore_[coin].PrivateKey(privateKeyWif);
     var address = privateKey.publicKey.toAddress().toString();
     var addrBuff = Buffer.from(address, 'ascii');
-    var actualChecksum = Bitcore.crypto.Hash.sha256sha256(addrBuff)
+    var actualChecksum = Bitcore_[coin].crypto.Hash.sha256sha256(addrBuff)
       .toString('hex')
       .substring(0, 8);
-    var expectedChecksum = Bitcore.encoding.Base58Check.decode(encryptedPrivateKeyBase58)
+    var expectedChecksum = Bitcore_[coin].encoding.Base58Check.decode(encryptedPrivateKeyBase58)
       .toString('hex')
       .substring(6, 14);
 
@@ -547,14 +548,14 @@ export class API extends EventEmitter {
 
   static _buildSecret(walletId, walletPrivKey, coin, network) {
     if (_.isString(walletPrivKey)) {
-      walletPrivKey = Bitcore.PrivateKey.fromString(walletPrivKey);
+      walletPrivKey = Bitcore_[coin].PrivateKey.fromString(walletPrivKey);
     }
     var widHex = Buffer.from(walletId.replace(/-/g, ''), 'hex');
     var widBase58 = new Bitcore.encoding.Base58(widHex).toString();
     return _.padEnd(widBase58, 22, '0') + walletPrivKey.toWIF() + (network == 'testnet' ? 'T' : 'L') + coin;
   }
 
-  static parseSecret(secret) {
+  static parseSecret(secret, coin) {
     $.checkArgument(secret);
 
     var split = (str, indexes) => {
@@ -574,7 +575,7 @@ export class API extends EventEmitter {
       var widHex = Bitcore.encoding.Base58.decode(widBase58).toString('hex');
       var walletId = split(widHex, [8, 12, 16, 20]).join('-');
 
-      var walletPrivKey = Bitcore.PrivateKey.fromString(secretSplit[1]);
+      var walletPrivKey = Bitcore_[coin].PrivateKey.fromString(secretSplit[1]);
       var networkChar = secretSplit[2];
       var coin = secretSplit[3] || 'vcl';
 
@@ -710,7 +711,7 @@ export class API extends EventEmitter {
     if (_.isBoolean(opts.supportBIP44AndP2PKH)) args.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
     var hash = Utils.getCopayerHash(args.name, args.xPubKey, args.requestPubKey);
-    args.copayerSignature = Utils.signMessage(hash, walletPrivKey);
+    args.copayerSignature = Utils.signMessage(hash, walletPrivKey, opts.coin);
 
     var url = '/v2/wallets/' + walletId + '/copayers';
     this.request.post(url, args, (err, body) => {
@@ -816,7 +817,7 @@ export class API extends EventEmitter {
       return cb(new Error('Existing keys were created for a different network'));
     }
 
-    var walletPrivKey = opts.walletPrivKey || new Bitcore.PrivateKey();
+    var walletPrivKey = opts.walletPrivKey || new Bitcore_[coin].PrivateKey();
 
     var c = this.credentials;
     c.addWalletPrivateKey(walletPrivKey.toString());
@@ -826,7 +827,7 @@ export class API extends EventEmitter {
       name: encWalletName,
       m,
       n,
-      pubKey: new Bitcore.PrivateKey(walletPrivKey).toPublicKey().toString(),
+      pubKey: new Bitcore_[coin].PrivateKey(walletPrivKey).toPublicKey().toString(),
       coin,
       network,
       singleAddress: !!opts.singleAddress,
@@ -884,7 +885,7 @@ export class API extends EventEmitter {
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
 
     try {
-      var secretData = API.parseSecret(secret);
+      var secretData = API.parseSecret(secret, coin);
     } catch (ex) {
       return cb(ex);
     }
@@ -941,7 +942,7 @@ export class API extends EventEmitter {
         }
 
         var c = this.credentials;
-        var walletPrivKey = Bitcore.PrivateKey.fromString(c.walletPrivKey);
+        var walletPrivKey = Bitcore_[c.coin].PrivateKey.fromString(c.walletPrivKey);
         var walletId = c.walletId;
         var supportBIP44AndP2PKH = c.derivationStrategy != Constants.DERIVATION_STRATEGIES.BIP45;
         var encWalletName = Utils.encryptMessage(c.walletName || 'recovered wallet', c.sharedEncryptingKey);
@@ -1322,7 +1323,7 @@ export class API extends EventEmitter {
       hash = t.uncheckedSerialize();
     }		
     var args = {
-      proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey)
+      proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey, opts.txp.coin)
     };
 
     var url = '/v2/txproposals/' + opts.txp.id + '/publish/';
@@ -2051,7 +2052,8 @@ export class API extends EventEmitter {
     $.shouldBeString(opts.signature, 'no signature at addAccess()');
 
     opts = opts || {};
-    var requestPubKey = new Bitcore.PrivateKey(opts.requestPrivKey).toPublicKey().toString();
+    var coin = opts.coin || 'vcl';
+    var requestPubKey = new Bitcore_[coin].PrivateKey(opts.requestPrivKey).toPublicKey().toString();
     var copayerId = this.credentials.copayerId;
     var encCopayerName = opts.name ? Utils.encryptMessage(opts.name, this.credentials.sharedEncryptingKey) : null;
 
@@ -2453,7 +2455,7 @@ export class API extends EventEmitter {
       // Find and merge dup keys.
       let credGroups = _.groupBy(newCrededentials, x => {
         $.checkState(x.xPubKey, 'no xPubKey at credentials!');
-        let xpub = new Bitcore.HDPublicKey(x.xPubKey);
+        let xpub = new Bitcore_[x.coin].HDPublicKey(x.xPubKey);
         let fingerPrint = xpub.fingerPrint.toString('hex');
         return fingerPrint;
       });
@@ -3078,7 +3080,7 @@ export class API extends EventEmitter {
     if (!opts.pingHeight) return cb(new Error('Not ping block height'));
     if (!opts.pingHash) return cb(new Error('Not ping blockhash'));
     if (!opts.privKey) return cb(new Error('Not masternode private key'));
-    if (!Utils.isPrivateKey(opts.privKey)) {
+    if (!Utils.isPrivateKey(opts.privKey, opts.coin)) {
       return cb(new Error('Invalid masternode private key'));
     }
 

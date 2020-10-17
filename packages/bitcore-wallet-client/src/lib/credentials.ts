@@ -1,12 +1,17 @@
 'use strict';
 
-import { BitcoreLib } from 'crypto-wallet-core';
-
+import * as CWC from 'crypto-wallet-core';
 import { Constants, Utils } from './common';
 const $ = require('preconditions').singleton();
 const _ = require('lodash');
 
-const Bitcore = BitcoreLib;
+var Bitcore_ = {
+  btc: CWC.BitcoreLib,
+  bch: CWC.BitcoreLibCash,
+  eth: CWC.BitcoreLib,
+  xrp: CWC.BitcoreLib,
+  vcl: CWC.VircleLib
+};
 const sjcl = require('sjcl');
 
 export class Credentials {
@@ -112,13 +117,13 @@ export class Credentials {
     }
     x.requestPrivKey = opts.requestPrivKey;
 
-    const priv = Bitcore.PrivateKey(x.requestPrivKey);
+    const priv = Bitcore_[opts.coin].PrivateKey(x.requestPrivKey);
     x.requestPubKey = priv.toPublicKey().toString();
 
     const prefix = 'personalKey';
-    const entropySource = Bitcore.crypto.Hash.sha256(priv.toBuffer()).toString('hex');
+    const entropySource = Bitcore_[opts.coin].crypto.Hash.sha256(priv.toBuffer()).toString('hex');
     const b = Buffer.from(entropySource, 'hex');
-    const b2 = Bitcore.crypto.Hash.sha256hmac(b, Buffer.from(prefix));
+    const b2 = Bitcore_[opts.coin].crypto.Hash.sha256hmac(b, Buffer.from(prefix));
     x.personalEncryptingKey = b2.slice(0, 16).toString('base64');
     x.copayerId = Utils.xPubToCopayerId(x.coin, x.xPubKey);
     x.publicKeyRing = [
@@ -243,9 +248,10 @@ export class Credentials {
     });
     return x;
   }
-  addWalletPrivateKey(walletPrivKey) {
+  addWalletPrivateKey(walletPrivKey, coin) {
+    coin = coin || 'vcl';
     this.walletPrivKey = walletPrivKey;
-    this.sharedEncryptingKey = Utils.privateKeyToAESKey(walletPrivKey);
+    this.sharedEncryptingKey = Utils.privateKeyToAESKey(walletPrivKey, coin);
   }
 
   addWalletInfo(walletId, walletName, m, n, copayerName, opts) {
