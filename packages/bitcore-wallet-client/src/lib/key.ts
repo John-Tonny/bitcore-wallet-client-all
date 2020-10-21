@@ -202,9 +202,35 @@ export class Key {
     return null;
   };
 
+  // john
+  isValidAddress = function(password, rootPath, coin, queryAddress, start, stop) {
+    var privs = [];
+    var derived: any = {};
+    coin = coin || 'vcl';
+    var derived = this.derive(password, rootPath, coin);
+    var xpriv = new Bitcore_[coin].HDPrivateKey(derived);
+
+    start = start || 0;
+    stop = stop || (start + 100);
+
+    var privKey;
+    for(var i=start;i<stop;i++) {
+      var path = "m/0/" + i.toString();
+      if (!derived[path]) {
+        privKey = xpriv.deriveChild(path).privateKey;
+        var address = privKey.publicKey.toAddress().toString();
+        if (address === queryAddress){
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   isPrivKeyEncrypted = function() {
     return !!this.xPrivKeyEncrypted && !this.xPrivKey;
   };
+
 
   checkPassword = function(password) {
     if (this.isPrivKeyEncrypted()) {
