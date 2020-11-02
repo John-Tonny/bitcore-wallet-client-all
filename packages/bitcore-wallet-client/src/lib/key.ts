@@ -308,7 +308,7 @@ export class Key {
 
   derive = function(password, path, coin) {
     $.checkArgument(path, 'no path at derive()');
-    var xPrivKey = new Bitcore_[coin].HDPrivateKey(this.get(password).xPrivKey, NETWORK);
+    var xPrivKey = new Bitcore_[coin].HDPrivateKey(this.get(password, coin).xPrivKey, NETWORK);
     var deriveFn = this.compliantDerivation
       ? _.bind(xPrivKey.deriveChild, xPrivKey)
       : _.bind(xPrivKey.deriveNonCompliantChild, xPrivKey);
