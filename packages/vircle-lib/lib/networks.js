@@ -178,19 +178,24 @@ var livenet = get('livenet');
 addNetwork({
   name: 'testnet',
   alias: 'test',
-  pubkeyhash: 0x6f,
+  pubkeyhash: 0x41,
   privatekey: 0xef,
   scripthash: 0xc4,
-  bech32prefix: 'tb',
+  bech32prefix: 'tvcl',
   xpubkey: 0x043587cf,
   xprivkey: 0x04358394,
-  networkMagic: 0x0b110907,
-  port: 18333,
+  ypubkey: 0x049d7cb2,
+  yprivkey: 0x049d7878,
+  zpubkey: 0x04b24746,
+  zprivkey: 0x04b2430c,
+  Ypubkey: 0x0295b43f,
+  Yprivkey: 0x0295b005,
+  Zpubkey: 0x02aa7ed3,
+  Zprivkey: 0x02aa7a99,
+  networkMagic: 0x1a2b3c4d,
+  port: 9903,
   dnsSeeds: [
-    'testnet-seed.bitcoin.petertodd.org',
-    'testnet-seed.bluematt.me',
-    'testnet-seed.alexykot.me',
-    'testnet-seed.bitcoin.schildbach.de'
+    "68.79.38.126"
   ]
 });
 
