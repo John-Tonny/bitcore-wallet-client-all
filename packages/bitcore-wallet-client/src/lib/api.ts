@@ -1316,12 +1316,14 @@ export class API extends EventEmitter {
     $.checkState(parseInt(opts.txp.version) >= 3);
 
     var t = Utils.buildTx(opts.txp);
-    var hash;    
+    var hash;
+
     if (opts.txp.coin == 'vcl') {
       hash = t.uncheckedSerialize1();
-    }else {
+    } else {
       hash = t.uncheckedSerialize();
-    }		
+    }
+
     var args = {
       proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey, opts.txp.coin)
     };
@@ -3091,5 +3093,25 @@ export class API extends EventEmitter {
 
     return cb(null, masternode.singMasternode());
   }
-}
 
+  isValidAddress(opts, cb) {
+    if (!cb) {
+      cb = opts;
+      opts = {};
+      log.warn('DEPRECATED WARN: isValidAddress should receive 2 parameters.');
+    }
+
+    opts = opts || {};
+    
+    var coin = opts.coin || 'vcl';
+    var network = opts.network || 'livenet';
+
+    if (!opts.address) return cb(new Error('Not address'));
+    if (!opts.type) return cb(new Error('Not type'));
+    
+    if (Bitcore_[coin].Address.isValid(opts.address, network, opts.type)){
+      return cb(null, true);
+    }
+    return cb(new Error('Invalid address'), false);
+  }
+}
