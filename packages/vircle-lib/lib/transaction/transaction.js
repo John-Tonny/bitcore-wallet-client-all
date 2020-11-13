@@ -332,8 +332,11 @@ Transaction.prototype.hasWitnesses = function() {
 
 Transaction.prototype.toBufferWriter = function(writer, noWitness) {
   // john
-  writer.writeInt32LE(0x02);
-  // writer.writeInt32LE(this.version);
+  if (this.version == 0x01) {
+    writer.writeInt32LE(0x02);
+  } else {
+    writer.writeInt32LE(this.version);
+  }
 
   var hasWitnesses = this.hasWitnesses();
 
@@ -370,8 +373,11 @@ Transaction.prototype.toBufferWriter = function(writer, noWitness) {
 // john
 Transaction.prototype.toBufferWriter1 = function(writer, inputNumber) {
   // john
-  writer.writeInt32LE(0x02);
-  // writer.writeInt32LE(this.version);
+  if (this.version == 0x01) {
+    writer.writeInt32LE(0x02);
+  } else {
+    writer.writeInt32LE(this.version);
+  }
 
   var noWitness = this.isNotWitnesses();
 
