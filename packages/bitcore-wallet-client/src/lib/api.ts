@@ -3107,9 +3107,8 @@ export class API extends EventEmitter {
     var network = opts.network || 'livenet';
 
     if (!opts.address) return cb(new Error('Not address'));
-    if (!opts.type) return cb(new Error('Not type'));
-    
-    if (Bitcore_[coin].Address.isValid(opts.address, network, opts.type)){
+ 
+    if (CWC.Validation.validateAddress(coin, network, opts.address)) {    
       return cb(null, true);
     }
     return cb(new Error('Invalid address'), false);
