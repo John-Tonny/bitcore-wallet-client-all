@@ -3113,4 +3113,69 @@ export class API extends EventEmitter {
     }
     return cb(new Error('Invalid address'), false);
   }
+
+  createReward(opts, cb) {
+    async.waterfall(
+      [
+        next => {
+	  this.openWallet(opts, 
+	    (err, walletStatus) => {
+	      if(err){
+		return next(new Error('open wallet error!'), err);
+	      }
+	      return next(null, walletStatus);
+	    }
+	  );
+        },
+        (walletStatus, next) => {
+          if(walletStatus.wallet.status != 'complete'){
+  	    return next(new Error('wallet no complete!'), walletStatus);
+          }
+	  this.createTxProposal(opts, 
+	    function(err, createTxp){
+    	      if(err){
+		return next(new Error('create TxProposal error!'), err);
+	      }
+	      return next(null, createTxp);	  
+	    }
+	  ,'');  
+        },
+	(createTxp, next) => {
+	  this.publishTxProposal({txp:createTxp}, 
+	    (err, publishTxp) => {
+      	      if(err){
+		return next(new Error('publish TxProposal error!'), err);
+              }
+	      return next(null, publishTxp);		
+	    }
+          );
+	},
+	(publishTxp, next) => {
+	  let signatures = opts.key.sign(this.getRootPath(), publishTxp);
+          this.pushSignatures(publishTxp, signatures, 
+	    function(err, rawHex, paypro) {
+              if(err){
+		return next(new Error('push Signatures error!'), err);
+              }
+	      return next(null, rawHex);
+	    }
+	  ,'');
+	},
+        (rawHex ,next) => {
+	  this.broadcastTxProposal(rawHex, 
+	    (err, zz, memo) => {
+              if(err){
+		return next(new Error('broadcast TxProposal error!'), err);
+	      }
+	      return cb(null, zz.txid);
+     	    }
+	  );
+	}
+      ], 
+      function (err, errMsg) {
+	cb(errMsg, null);
+      }
+    );
+  }
+
 }
