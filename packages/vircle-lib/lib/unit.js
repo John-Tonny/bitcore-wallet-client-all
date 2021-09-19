@@ -149,15 +149,15 @@ Unit.prototype.to = function(code) {
     if (code <= 0) {
       throw new errors.Unit.InvalidRate(code);
     }
-    return new Decimal(this.BTC).mul(new Decimal(code)).toFixed(2);
+    return parseFloat((this.BTC * code).toFixed(2));
   }
 
   if (!UNITS[code]) {
     throw new errors.Unit.UnknownCode(code);
   }
-
-  var value = new Decimal(this._value).div(new Decimal(UNITS[code][0]));
-  return value.toFixed(UNITS[code][1]);
+  
+  var value = this._value / UNITS[code][0];
+  return parseFloat(value.toFixed(UNITS[code][1]));
 };
 
 /**
