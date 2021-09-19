@@ -4,6 +4,7 @@ var _ = require('lodash');
 
 var errors = require('./errors');
 var $ = require('./util/preconditions');
+var Decimal = require('decimal.js');
 
 var UNITS = {
   'BTC'      : [1e8, 8],
@@ -134,7 +135,7 @@ Unit.prototype._from = function(amount, code) {
   if (!UNITS[code]) {
     throw new errors.Unit.UnknownCode(code);
   }
-  return parseInt((amount * UNITS[code][0]).toFixed());
+  return new Decimal(amount).mul(new Decimal(UNITS[code][0])).toFixed();
 };
 
 /**
@@ -148,15 +149,15 @@ Unit.prototype.to = function(code) {
     if (code <= 0) {
       throw new errors.Unit.InvalidRate(code);
     }
-    return parseFloat((this.BTC * code).toFixed(2));
+    return new Decimal(this.BTC).mul(new Decimal(code)).toFixed(2);
   }
 
   if (!UNITS[code]) {
     throw new errors.Unit.UnknownCode(code);
   }
 
-  var value = this._value / UNITS[code][0];
-  return parseFloat(value.toFixed(UNITS[code][1]));
+  var value = new Decimal(this._value).div(new Decimal(UNITS[code][0]));
+  return value.toFixed(UNITS[code][1]);
 };
 
 /**
