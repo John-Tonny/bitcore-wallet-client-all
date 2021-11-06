@@ -5,7 +5,6 @@ import * as log from 'npmlog';
 import { IChain, INotificationData } from '..';
 import { ClientError } from '../../errors/clienterror';
 import { TxProposal } from '../../model';
-import logger from '../../logger';
 
 const $ = require('preconditions').singleton();
 const Common = require('../../common');
@@ -13,7 +12,7 @@ const Constants = Common.Constants;
 const Utils = Common.Utils;
 const Defaults = Common.Defaults;
 const Errors = require('../../errors/errordefinitions');
-
+log.debug = log.verbose;
 
 export class VclChain implements IChain {
   protected feeSafetyMargin: number;
@@ -26,7 +25,8 @@ export class VclChain implements IChain {
     server.getUtxosForCurrentWallet(
       {
         coin: opts.coin,
-        addresses: opts.addresses
+        addresses: opts.addresses,
+        excludeMasternode: opts.excludeMasternode // john 20210916
       },
       (err, utxos) => {
         if (err) return cb(err);
@@ -56,12 +56,12 @@ export class VclChain implements IChain {
       }
     );
   }
-
+  // john 20210527
   getWalletSendMaxInfo(server, wallet, opts, cb) {
-    server.getUtxosForCurrentWallet({}, (err, utxos) => {
+    server.getUtxosForCurrentWallet({ excludeMasternode: opts.excludeMasternode }, (err, utxos) => {
       if (err) return cb(err);
 
-      const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_VCL;
+      const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_BTC;
 
       const info = {
         size: 0,
@@ -140,6 +140,92 @@ export class VclChain implements IChain {
     });
   }
 
+  // john 20210409
+  getRedeemSendMaxInfo(server, wallet, opts, cb) {
+    server.getUtxosForCurrentWallet({ excludeMasternode: opts.excludeMasternode }, (err, utxos) => {
+      if (err) return cb(err);
+      console.log(utxos);
+    });
+    const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_BTC;
+
+    const info = {
+      size: 0,
+      amount: 0,
+      fee: 0,
+      feePerKb: 0,
+      inputs: [],
+      utxosBelowFee: 0,
+      amountBelowFee: 0,
+      utxosAboveMaxSize: 0,
+      amountAboveMaxSize: 0
+    };
+
+    let inputs = _.reject(opts.atomicswap.utxos, 'locked');
+    // john 20210409
+
+    if (!!opts.excludeUnconfirmedUtxos) {
+      inputs = _.filter(inputs, 'confirmations');
+    }
+    inputs = _.sortBy(inputs, input => {
+      return -input.satoshis;
+    });
+
+    if (_.isEmpty(inputs)) return cb(null, info);
+
+    server._getFeePerKb(wallet, opts, (err, feePerKb) => {
+      if (err) return cb(err);
+
+      info.feePerKb = feePerKb;
+
+      const txp = TxProposal.create({
+        walletId: server.walletId,
+        coin: wallet.coin,
+        network: wallet.network,
+        walletM: wallet.m,
+        walletN: wallet.n,
+        feePerKb
+      });
+      const baseTxpSize = this.getEstimatedSize(txp);
+      const sizePerInput = this.getEstimatedSizeForSingleInput(txp);
+      const feePerInput = (sizePerInput * txp.feePerKb) / 1000;
+
+      const partitionedByAmount = _.partition(inputs, input => {
+        return input.satoshis > feePerInput;
+      });
+
+      info.utxosBelowFee = partitionedByAmount[1].length;
+      info.amountBelowFee = _.sumBy(partitionedByAmount[1], 'satoshis');
+      inputs = partitionedByAmount[0];
+
+      _.each(inputs, (input, i) => {
+        const sizeInKb = (baseTxpSize + (i + 1) * sizePerInput) / 1000;
+        if (sizeInKb > MAX_TX_SIZE_IN_KB) {
+          info.utxosAboveMaxSize = inputs.length - i;
+          info.amountAboveMaxSize = _.sumBy(_.slice(inputs, i), 'satoshis');
+          return false;
+        }
+        txp.inputs.push(input);
+      });
+
+      if (_.isEmpty(txp.inputs)) return cb(null, info);
+
+      const fee = this.getEstimatedFee(txp);
+      const amount = _.sumBy(txp.inputs, 'satoshis') - fee;
+
+      if (amount < Defaults.MIN_OUTPUT_AMOUNT) return cb(null, info);
+
+      info.size = this.getEstimatedSize(txp);
+      info.fee = fee;
+      info.amount = amount;
+
+      if (opts.returnInputs) {
+        info.inputs = _.shuffle(txp.inputs);
+      }
+
+      return cb(null, info);
+    });
+  }
+
   getDustAmountValue() {
     return this.bitcoreLib.Transaction.DUST_AMOUNT;
   }
@@ -209,7 +295,7 @@ export class VclChain implements IChain {
         return 46 + txp.requiredSignatures * SIGNATURE_SIZE + txp.walletN * PUBKEY_SIZE;
 
       default:
-        logger.warn('Unknown address type at getEstimatedSizeForSingleInput:', txp.addressType);
+        log.warn('Unknown address type at getEstimatedSizeForSingleInput:', txp.addressType);
         return 46 + txp.requiredSignatures * SIGNATURE_SIZE + txp.walletN * PUBKEY_SIZE;
     }
   }
@@ -240,7 +326,7 @@ export class VclChain implements IChain {
         break;
       default:
         scriptSize = 34;
-        logger.warn('Unknown address type at getEstimatedSizeForSingleOutput:', addressType);
+        log.warn('Unknown address type at getEstimatedSizeForSingleOutput:', addressType);
         break;
     }
     return scriptSize + 8 + 1; // value + script length
@@ -268,7 +354,7 @@ export class VclChain implements IChain {
       outputsSize = this.getEstimatedSizeForSingleOutput();
     }
 
-    const size = overhead + inputSize * nbInputs + outputsSize;
+    const size = overhead + inputSize * nbInputs + outputsSize + Defaults.DATA_OUTPUT_LEN; // john 20210606
     return parseInt((size * (1 + this.feeSafetyMargin)).toFixed(0));
   }
 
@@ -358,6 +444,17 @@ export class VclChain implements IChain {
 
     t.fee(txp.fee);
 
+    // john 20210409
+    if (txp.atomicswap && txp.atomicswap.isAtomicSwap && txp.atomicswap.redeem != undefined) {
+      t.inputs[0].output.setScript(txp.atomicswap.contract);
+      t.atomicswap = txp.atomicswap;
+      if (!txp.atomicswap.redeem) {
+        t.lockUntilDate(txp.atomicswap.lockTime);
+      } else {
+        t.nLockTime = txp.atomicswap.lockTime;
+      }
+    }
+
     if (txp.changeAddress) {
       t.change(txp.changeAddress.address);
     }
@@ -388,6 +485,7 @@ export class VclChain implements IChain {
         this.addSignaturesToBitcoreTx(t, txp.inputs, txp.inputPaths, x.signatures, x.xpub, txp.signingMethod);
       });
     }
+
     return t;
   }
 
@@ -397,7 +495,7 @@ export class VclChain implements IChain {
 
   checkTx(txp) {
     let bitcoreError;
-    const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_VCL;
+    const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_BTC;
 
     if (this.getEstimatedSize(txp) / 1000 > MAX_TX_SIZE_IN_KB) return Errors.TX_MAX_SIZE_EXCEEDED;
 
@@ -415,7 +513,7 @@ export class VclChain implements IChain {
         txp.fee = bitcoreTx.getFee();
       }
     } catch (ex) {
-      logger.warn('Error building Bitcore transaction', ex);
+      log.warn('Error building Bitcore transaction', ex);
       return ex;
     }
 
@@ -425,7 +523,7 @@ export class VclChain implements IChain {
   }
 
   checkTxUTXOs(server, txp, opts, cb) {
-    logger.debug('Rechecking UTXOs availability for publishTx');
+    log.debug('Rechecking UTXOs availability for publishTx');
 
     const utxoKey = utxo => {
       return utxo.txid + '|' + utxo.vout;
@@ -452,22 +550,35 @@ export class VclChain implements IChain {
   }
 
   totalizeUtxos(utxos) {
+    // john
+    var totalUnConfirmedAmount = _.sumBy(
+      _.filter(utxos, x => {
+        return x.coinbase && x.confirmations < Defaults.COINBASE_MATURITY_VCL;
+      }),
+      'satoshis'
+    );
     const balance = {
       totalAmount: _.sumBy(utxos, 'satoshis'),
       lockedAmount: _.sumBy(_.filter(utxos, 'locked'), 'satoshis'),
       totalConfirmedAmount: _.sumBy(_.filter(utxos, 'confirmations'), 'satoshis'),
       lockedConfirmedAmount: _.sumBy(_.filter(_.filter(utxos, 'locked'), 'confirmations'), 'satoshis'),
       availableAmount: undefined,
-      availableConfirmedAmount: undefined
+      availableConfirmedAmount: undefined,
+      availableAmountExcludeMasternode: undefined,
+      availableConfirmedAmountExcludeMasternode: undefined
     };
-    balance.availableAmount = balance.totalAmount - balance.lockedAmount;
-    balance.availableConfirmedAmount = balance.totalConfirmedAmount - balance.lockedConfirmedAmount;
+    balance.availableAmountExcludeMasternode = balance.totalAmount - balance.lockedAmount;
+    balance.availableConfirmedAmountExcludeMasternode = balance.totalConfirmedAmount - balance.lockedConfirmedAmount;
+    var lockedMasternodeAmount = _.sumBy(_.filter(utxos, 'isMasternode'), 'satoshis');
+    balance.availableAmount = balance.totalAmount - balance.lockedAmount + lockedMasternodeAmount;
+    balance.availableConfirmedAmount =
+      balance.totalConfirmedAmount - balance.lockedConfirmedAmount + lockedMasternodeAmount;
 
     return balance;
   }
 
   selectTxInputs(server, txp, wallet, opts, cb) {
-    const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_VCL;
+    const MAX_TX_SIZE_IN_KB = Defaults.MAX_TX_SIZE_IN_KB_BTC;
 
     // todo: check inputs are ours and have enough value
     if (txp.inputs && !_.isEmpty(txp.inputs)) {
@@ -505,21 +616,21 @@ export class VclChain implements IChain {
       const netValueInUtxos = totalValueInUtxos - baseTxpFee - utxos.length * feePerInput;
 
       if (totalValueInUtxos < txpAmount) {
-        logger.debug(
+        log.debug(
           'Total value in all utxos (' +
-            Utils.formatAmountInVcl(totalValueInUtxos) +
+            Utils.formatAmountInBtc(totalValueInUtxos) +
             ') is insufficient to cover for txp amount (' +
-            Utils.formatAmountInVcl(txpAmount) +
+            Utils.formatAmountInBtc(txpAmount) +
             ')'
         );
         return cb(Errors.INSUFFICIENT_FUNDS);
       }
       if (netValueInUtxos < txpAmount) {
-        logger.debug(
+        log.debug(
           'Value after fees in all utxos (' +
-            Utils.formatAmountInVcl(netValueInUtxos) +
+            Utils.formatAmountInBtc(netValueInUtxos) +
             ') is insufficient to cover for txp amount (' +
-            Utils.formatAmountInVcl(txpAmount) +
+            Utils.formatAmountInBtc(txpAmount) +
             ')'
         );
 
@@ -527,7 +638,7 @@ export class VclChain implements IChain {
       }
 
       const bigInputThreshold = txpAmount * Defaults.UTXO_SELECTION_MAX_SINGLE_UTXO_FACTOR + (baseTxpFee + feePerInput);
-      logger.debug('Big input threshold ' + Utils.formatAmountInVcl(bigInputThreshold));
+      log.debug('Big input threshold ' + Utils.formatAmountInBtc(bigInputThreshold));
 
       const partitions = _.partition(utxos, utxo => {
         return utxo.satoshis > bigInputThreshold;
@@ -538,8 +649,8 @@ export class VclChain implements IChain {
         return -utxo.satoshis;
       });
 
-      // logger.debug('Considering ' + bigInputs.length + ' big inputs (' + Utils.formatUtxos(bigInputs) + ')');
-      // logger.debug('Considering ' + smallInputs.length + ' small inputs (' + Utils.formatUtxos(smallInputs) + ')');
+      // log.debug('Considering ' + bigInputs.length + ' big inputs (' + Utils.formatUtxos(bigInputs) + ')');
+      // log.debug('Considering ' + smallInputs.length + ' small inputs (' + Utils.formatUtxos(smallInputs) + ')');
 
       let total = 0;
       let netTotal = -baseTxpFee;
@@ -548,11 +659,11 @@ export class VclChain implements IChain {
       let error;
 
       _.each(smallInputs, (input, i) => {
-        // logger.debug('Input #' + i + ': ' + Utils.formatUtxos(input));
+        // log.debug('Input #' + i + ': ' + Utils.formatUtxos(input));
 
         const netInputAmount = input.satoshis - feePerInput;
 
-        // logger.debug('The input contributes ' + Utils.formatAmountInVcl(netInputAmount));
+        // log.debug('The input contributes ' + Utils.formatAmountInBtc(netInputAmount));
 
         selected.push(input);
 
@@ -562,45 +673,45 @@ export class VclChain implements IChain {
         const txpSize = baseTxpSize + selected.length * sizePerInput;
         fee = Math.round(baseTxpFee + selected.length * feePerInput);
 
-        // logger.debug('Tx size: ' + Utils.formatSize(txpSize) + ', Tx fee: ' + Utils.formatAmountInVcl(fee));
+        // log.debug('Tx size: ' + Utils.formatSize(txpSize) + ', Tx fee: ' + Utils.formatAmountInBtc(fee));
 
         const feeVsAmountRatio = fee / txpAmount;
         const amountVsUtxoRatio = netInputAmount / txpAmount;
 
-        // logger.debug('Fee/Tx amount: ' + Utils.formatRatio(feeVsAmountRatio) + ' (max: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MAX_FEE_VS_TX_AMOUNT_FACTOR) + ')');
-        // logger.debug('Tx amount/Input amount:' + Utils.formatRatio(amountVsUtxoRatio) + ' (min: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MIN_TX_AMOUNT_VS_UTXO_FACTOR) + ')');
+        // log.debug('Fee/Tx amount: ' + Utils.formatRatio(feeVsAmountRatio) + ' (max: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MAX_FEE_VS_TX_AMOUNT_FACTOR) + ')');
+        // log.debug('Tx amount/Input amount:' + Utils.formatRatio(amountVsUtxoRatio) + ' (min: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MIN_TX_AMOUNT_VS_UTXO_FACTOR) + ')');
 
         if (txpSize / 1000 > MAX_TX_SIZE_IN_KB) {
-          // logger.debug('Breaking because tx size (' + Utils.formatSize(txpSize) + ') is too big (max: ' + Utils.formatSize(this.MAX_TX_SIZE_IN_KB * 1000.) + ')');
+          // log.debug('Breaking because tx size (' + Utils.formatSize(txpSize) + ') is too big (max: ' + Utils.formatSize(this.MAX_TX_SIZE_IN_KB * 1000.) + ')');
           error = Errors.TX_MAX_SIZE_EXCEEDED;
           return false;
         }
 
         if (!_.isEmpty(bigInputs)) {
           if (amountVsUtxoRatio < Defaults.UTXO_SELECTION_MIN_TX_AMOUNT_VS_UTXO_FACTOR) {
-            // logger.debug('Breaking because utxo is too small compared to tx amount');
+            // log.debug('Breaking because utxo is too small compared to tx amount');
             return false;
           }
 
           if (feeVsAmountRatio > Defaults.UTXO_SELECTION_MAX_FEE_VS_TX_AMOUNT_FACTOR) {
             const feeVsSingleInputFeeRatio = fee / (baseTxpFee + feePerInput);
-            // logger.debug('Fee/Single-input fee: ' + Utils.formatRatio(feeVsSingleInputFeeRatio) + ' (max: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MAX_FEE_VS_SINGLE_UTXO_FEE_FACTOR) + ')' + ' loses wrt single-input tx: ' + Utils.formatAmountInVcl((selected.length - 1) * feePerInput));
+            // log.debug('Fee/Single-input fee: ' + Utils.formatRatio(feeVsSingleInputFeeRatio) + ' (max: ' + Utils.formatRatio(Defaults.UTXO_SELECTION_MAX_FEE_VS_SINGLE_UTXO_FEE_FACTOR) + ')' + ' loses wrt single-input tx: ' + Utils.formatAmountInBtc((selected.length - 1) * feePerInput));
             if (feeVsSingleInputFeeRatio > Defaults.UTXO_SELECTION_MAX_FEE_VS_SINGLE_UTXO_FEE_FACTOR) {
-              // logger.debug('Breaking because fee is too significant compared to tx amount and it is too expensive compared to using single input');
+              // log.debug('Breaking because fee is too significant compared to tx amount and it is too expensive compared to using single input');
               return false;
             }
           }
         }
 
-        // logger.debug('Cumuled total so far: ' + Utils.formatAmountInVcl(total) + ', Net total so far: ' + Utils.formatAmountInVcl(netTotal));
+        // log.debug('Cumuled total so far: ' + Utils.formatAmountInBtc(total) + ', Net total so far: ' + Utils.formatAmountInBtc(netTotal));
 
         if (netTotal >= txpAmount) {
           const changeAmount = Math.round(total - txpAmount - fee);
-          // logger.debug('Tx change: ', Utils.formatAmountInVcl(changeAmount));
+          // log.debug('Tx change: ', Utils.formatAmountInBtc(changeAmount));
 
           const dustThreshold = Math.max(Defaults.MIN_OUTPUT_AMOUNT, this.bitcoreLib.Transaction.DUST_AMOUNT);
           if (changeAmount > 0 && changeAmount <= dustThreshold) {
-            // logger.debug('Change below dust threshold (' + Utils.formatAmountInVcl(dustThreshold) + '). Incrementing fee to remove change.');
+            // log.debug('Change below dust threshold (' + Utils.formatAmountInBtc(dustThreshold) + '). Incrementing fee to remove change.');
             // Remove dust change by incrementing fee
             fee += changeAmount;
           }
@@ -610,12 +721,12 @@ export class VclChain implements IChain {
       });
 
       if (netTotal < txpAmount) {
-        // logger.debug('Could not reach Txp total (' + Utils.formatAmountInVcl(txpAmount) + '), still missing: ' + Utils.formatAmountInVcl(txpAmount - netTotal));
+        // log.debug('Could not reach Txp total (' + Utils.formatAmountInBtc(txpAmount) + '), still missing: ' + Utils.formatAmountInBtc(txpAmount - netTotal));
 
         selected = [];
         if (!_.isEmpty(bigInputs)) {
           const input = _.head(bigInputs);
-          // logger.debug('Using big input: ', Utils.formatUtxos(input));
+          // log.debug('Using big input: ', Utils.formatUtxos(input));
           total = input.satoshis;
           fee = Math.round(baseTxpFee + feePerInput);
           netTotal = total - fee;
@@ -624,14 +735,14 @@ export class VclChain implements IChain {
       }
 
       if (_.isEmpty(selected)) {
-        // logger.debug('Could not find enough funds within this utxo subset');
+        // log.debug('Could not find enough funds within this utxo subset');
         return cb(error || Errors.INSUFFICIENT_FUNDS_FOR_FEE);
       }
 
       return cb(null, selected, fee);
     };
 
-    // logger.debug('Selecting inputs for a ' + Utils.formatAmountInVcl(txp.getTotalAmount()) + ' txp');
+    // log.debug('Selecting inputs for a ' + Utils.formatAmountInBtc(txp.getTotalAmount()) + ' txp');
 
     server.getUtxosForCurrentWallet({ excludeMasternode: opts.excludeMasternode }, (err, utxos) => {
       if (err) return cb(err);
@@ -651,9 +762,14 @@ export class VclChain implements IChain {
       if (totalAmount < txp.getTotalAmount()) return cb(Errors.INSUFFICIENT_FUNDS);
       if (availableAmount < txp.getTotalAmount()) return cb(Errors.LOCKED_FUNDS);
 
+      // john
+      utxos = _.filter(utxos, x => {
+        return (x.coinbase && x.confirmations >= Defaults.COINBASE_MATURITY_VCL) || !x.coinbase;
+      });
+
       utxos = sanitizeUtxos(utxos);
 
-      // logger.debug('Considering ' + utxos.length + ' utxos (' + Utils.formatUtxos(utxos) + ')');
+      // log.debug('Considering ' + utxos.length + ' utxos (' + Utils.formatUtxos(utxos) + ')');
 
       const groups = [6, 1];
       if (!txp.excludeUnconfirmedUtxos) groups.push(0);
@@ -674,21 +790,21 @@ export class VclChain implements IChain {
             return utxo.confirmations >= group;
           });
 
-          // logger.debug('Group >= ' + group);
+          // log.debug('Group >= ' + group);
 
           // If this group does not have any new elements, skip it
           if (lastGroupLength === candidateUtxos.length) {
-            // logger.debug('This group is identical to the one already explored');
+            // log.debug('This group is identical to the one already explored');
             return next();
           }
 
-          // logger.debug('Candidate utxos: ' + Utils.formatUtxos(candidateUtxos));
+          // log.debug('Candidate utxos: ' + Utils.formatUtxos(candidateUtxos));
 
           lastGroupLength = candidateUtxos.length;
 
           select(candidateUtxos, txp.coin, (err, selectedInputs, selectedFee) => {
             if (err) {
-              // logger.debug('No inputs selected on this group: ', err);
+              // log.debug('No inputs selected on this group: ', err);
               selectionError = err;
               return next();
             }
@@ -697,8 +813,8 @@ export class VclChain implements IChain {
             inputs = selectedInputs;
             fee = selectedFee;
 
-            // logger.debug('Selected inputs from this group: ' + Utils.formatUtxos(inputs));
-            // logger.debug('Fee for this selection: ' + Utils.formatAmountInVcl(fee));
+            // log.debug('Selected inputs from this group: ' + Utils.formatUtxos(inputs));
+            // log.debug('Fee for this selection: ' + Utils.formatAmountInBtc(fee));
 
             return next();
           });
@@ -713,14 +829,14 @@ export class VclChain implements IChain {
           err = this.checkTx(txp);
           if (!err) {
             const change = _.sumBy(txp.inputs, 'satoshis') - _.sumBy(txp.outputs, 'amount') - txp.fee;
-            logger.debug(
+            log.debug(
               'Successfully built transaction. Total fees: ' +
-                Utils.formatAmountInVcl(txp.fee) +
+                Utils.formatAmountInBtc(txp.fee) +
                 ', total change: ' +
-                Utils.formatAmountInVcl(change)
+                Utils.formatAmountInBtc(change)
             );
           } else {
-            logger.debug('Error building transaction', err);
+            log.debug('Error building transaction', err);
           }
 
           return cb(err);

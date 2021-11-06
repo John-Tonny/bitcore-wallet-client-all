@@ -7,7 +7,6 @@ export interface IPreferences {
   language: string;
   unit: number;
   tokenAddresses?: string[];
-  multisigEthInfo: object[];
 }
 export class Preferences {
   version: string;
@@ -18,7 +17,6 @@ export class Preferences {
   language: string;
   unit: number;
   tokenAddresses: string[];
-  multisigEthInfo: object[];
 
   static create(opts) {
     opts = opts || {};
@@ -33,7 +31,6 @@ export class Preferences {
     x.language = opts.language;
     x.unit = opts.unit;
     x.tokenAddresses = opts.tokenAddresses;
-    x.multisigEthInfo = opts.multisigEthInfo;
     // you can't put useDust here since this is copayer's specific.
     return x;
   }
@@ -49,7 +46,6 @@ export class Preferences {
     x.language = obj.language;
     x.unit = obj.unit;
     x.tokenAddresses = obj.tokenAddresses;
-    x.multisigEthInfo = obj.multisigEthInfo;
     return x;
   }
 }

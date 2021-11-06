@@ -17,17 +17,15 @@ var $ = require('preconditions').singleton();
 var util = require('util');
 var async = require('async');
 var events = require('events');
-var Bitcore = CWC.BitcoreLib;
+var Bitcore = CWC.VircleLib;
 var Bitcore_ = {
-  btc: CWC.BitcoreLib,
-  bch: CWC.BitcoreLibCash,
-  eth: CWC.BitcoreLib,
-  xrp: CWC.BitcoreLib,
-  vcl: CWC.VircleLib  
+  vcl: CWC.VircleLib
 };
 var Mnemonic = require('bitcore-mnemonic');
 var url = require('url');
 var querystring = require('querystring');
+var JSUtil = Bitcore.util.js;
+var AuditContract = Bitcore.atomicswap.AuditContract;
 
 var log = require('./log');
 const Errors = require('./errors');
@@ -67,8 +65,6 @@ export class API extends EventEmitter {
   static Masternode = Masternode;
 
   // Expose bitcore
-  static Bitcore = CWC.BitcoreLib;
-  static BitcoreCash = CWC.BitcoreLibCash;
   static Vircle = CWC.VircleLib;
 
   constructor(opts?) {
@@ -254,9 +250,9 @@ export class API extends EventEmitter {
       var message =
         'Lorem ipsum dolor sit amet, ne amet urbanitas percipitur vim, libris disputando his ne, et facer suavitate qui. Ei quidam laoreet sea. Cu pro dico aliquip gubergren, in mundi postea usu. Ad labitur posidonium interesset duo, est et doctus molestie adipiscing.';
       var priv = xpriv.deriveChild(nonHardenedPath).privateKey;
-      var signature = Utils.signMessage(message, priv, opts.coin);
+      var signature = Utils.signMessage(message, priv);
       var pub = xpub.deriveChild(nonHardenedPath).publicKey;
-      return Utils.verifyMessage(message, signature, pub, opts.coin);
+      return Utils.verifyMessage(message, signature, pub);
     };
 
     var testHardcodedKeys = () => {
@@ -384,7 +380,6 @@ export class API extends EventEmitter {
     var Bip38 = require('bip38');
     var bip38 = new Bip38();
 
-    var coin = opts.coin || 'vcl';
     var privateKeyWif;
     try {
       privateKeyWif = bip38.decrypt(encryptedPrivateKeyBase58, passphrase);
@@ -392,13 +387,13 @@ export class API extends EventEmitter {
       return cb(new Error('Could not decrypt BIP38 private key' + ex));
     }
 
-    var privateKey = new Bitcore_[coin].PrivateKey(privateKeyWif);
+    var privateKey = new Bitcore.PrivateKey(privateKeyWif);
     var address = privateKey.publicKey.toAddress().toString();
     var addrBuff = Buffer.from(address, 'ascii');
-    var actualChecksum = Bitcore_[coin].crypto.Hash.sha256sha256(addrBuff)
+    var actualChecksum = Bitcore.crypto.Hash.sha256sha256(addrBuff)
       .toString('hex')
       .substring(0, 8);
-    var expectedChecksum = Bitcore_[coin].encoding.Base58Check.decode(encryptedPrivateKeyBase58)
+    var expectedChecksum = Bitcore.encoding.Base58Check.decode(encryptedPrivateKeyBase58)
       .toString('hex')
       .substring(6, 14);
 
@@ -548,14 +543,14 @@ export class API extends EventEmitter {
 
   static _buildSecret(walletId, walletPrivKey, coin, network) {
     if (_.isString(walletPrivKey)) {
-      walletPrivKey = Bitcore_[coin].PrivateKey.fromString(walletPrivKey);
+      walletPrivKey = Bitcore.PrivateKey.fromString(walletPrivKey);
     }
     var widHex = Buffer.from(walletId.replace(/-/g, ''), 'hex');
     var widBase58 = new Bitcore.encoding.Base58(widHex).toString();
     return _.padEnd(widBase58, 22, '0') + walletPrivKey.toWIF() + (network == 'testnet' ? 'T' : 'L') + coin;
   }
 
-  static parseSecret(secret, coin) {
+  static parseSecret(secret) {
     $.checkArgument(secret);
 
     var split = (str, indexes) => {
@@ -575,7 +570,7 @@ export class API extends EventEmitter {
       var widHex = Bitcore.encoding.Base58.decode(widBase58).toString('hex');
       var walletId = split(widHex, [8, 12, 16, 20]).join('-');
 
-      var walletPrivKey = Bitcore_[coin].PrivateKey.fromString(secretSplit[1]);
+      var walletPrivKey = Bitcore.PrivateKey.fromString(secretSplit[1]);
       var networkChar = secretSplit[2];
       var coin = secretSplit[3] || 'vcl';
 
@@ -711,7 +706,7 @@ export class API extends EventEmitter {
     if (_.isBoolean(opts.supportBIP44AndP2PKH)) args.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
     var hash = Utils.getCopayerHash(args.name, args.xPubKey, args.requestPubKey);
-    args.copayerSignature = Utils.signMessage(hash, walletPrivKey, opts.coin);
+    args.copayerSignature = Utils.signMessage(hash, walletPrivKey);
 
     var url = '/v2/wallets/' + walletId + '/copayers';
     this.request.post(url, args, (err, body) => {
@@ -817,7 +812,7 @@ export class API extends EventEmitter {
       return cb(new Error('Existing keys were created for a different network'));
     }
 
-    var walletPrivKey = opts.walletPrivKey || new Bitcore_[coin].PrivateKey();
+    var walletPrivKey = opts.walletPrivKey || new Bitcore.PrivateKey();
 
     var c = this.credentials;
     c.addWalletPrivateKey(walletPrivKey.toString());
@@ -827,7 +822,7 @@ export class API extends EventEmitter {
       name: encWalletName,
       m,
       n,
-      pubKey: new Bitcore_[coin].PrivateKey(walletPrivKey).toPublicKey().toString(),
+      pubKey: new Bitcore.PrivateKey(walletPrivKey).toPublicKey().toString(),
       coin,
       network,
       singleAddress: !!opts.singleAddress,
@@ -885,7 +880,7 @@ export class API extends EventEmitter {
     if (!_.includes(Constants.COINS, coin)) return cb(new Error('Invalid coin'));
 
     try {
-      var secretData = API.parseSecret(secret, coin);
+      var secretData = API.parseSecret(secret);
     } catch (ex) {
       return cb(ex);
     }
@@ -942,7 +937,7 @@ export class API extends EventEmitter {
         }
 
         var c = this.credentials;
-        var walletPrivKey = Bitcore_[c.coin].PrivateKey.fromString(c.walletPrivKey);
+        var walletPrivKey = Bitcore.PrivateKey.fromString(c.walletPrivKey);
         var walletId = c.walletId;
         var supportBIP44AndP2PKH = c.derivationStrategy != Constants.DERIVATION_STRATEGIES.BIP45;
         var encWalletName = Utils.encryptMessage(c.walletName || 'recovered wallet', c.sharedEncryptingKey);
@@ -1094,7 +1089,6 @@ export class API extends EventEmitter {
   // * @param {Boolean} opts.twoStep[=false] - Optional: use 2-step balance computation for improved performance
   // * @param {Boolean} opts.includeExtendedInfo (optional: query extended status)
   // * @param {String} opts.tokenAddress (optional: ERC20 Token Contract Address)
-  // * @param {String} opts.multisigContractAddress (optional: MULTISIG ETH Contract Address)
   // * @returns {Callback} cb - Returns error or an object with status information
   // */
   getStatus(opts, cb) {
@@ -1115,11 +1109,6 @@ export class API extends EventEmitter {
 
     if (opts.tokenAddress) {
       qs.push('tokenAddress=' + opts.tokenAddress);
-    }
-
-    if (opts.multisigContractAddress) {
-      qs.push('multisigContractAddress=' + opts.multisigContractAddress);
-      qs.push('network=' + this.credentials.network);
     }
 
     this.request.get('/v3/wallets/?' + qs.join('&'), (err, result) => {
@@ -1282,12 +1271,265 @@ export class API extends EventEmitter {
     $.checkArgument(opts);
 
     // BCH schnorr deployment
-    if (!opts.signingMethod && this.credentials.coin == 'bch') {
+    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
       opts.signingMethod = 'schnorr';
     }
 
     var args = this._getCreateTxProposalArgs(opts);
     baseUrl = baseUrl || '/v3/txproposals/';
+    // baseUrl = baseUrl || '/v4/txproposals/'; // DISABLED 2020-04-07
+
+    this.request.post(baseUrl, args, (err, txp) => {
+      if (err) return cb(err);
+
+      this._processTxps(txp);
+      if (!Verifier.checkProposalCreation(args, txp, this.credentials.sharedEncryptingKey)) {
+        return cb(new Errors.SERVER_COMPROMISED());
+      }
+
+      return cb(null, txp);
+    });
+  }
+
+  // john 20210409
+  // /**
+  // * Create a atomicswap redeem transaction proposal
+  // *
+  // * @param {Object} opts
+  // * @param {string} opts.txProposalId - Optional. If provided it will be used as this TX proposal ID. Should be unique in the scope of the wallet.
+  // * @param {Array} opts.atomicswap - atomicswap.
+  // * @param {Array} opts.atomicswap.contract - atomicswap contract.
+  // * @param {Array} opts.atomicswap.secret - atomicswap secret.
+  // * @param {Array} opts.outputs - List of outputs.
+  // * @param {string} opts.outputs[].toAddress - Destination address.
+  // * @param {string} opts.outputs[].message - A message to attach to this output.
+  // * @param {string} opts.message - A message to attach to this transaction.
+  // * @param {number} opts.feeLevel[='normal'] - Optional. Specify the fee level for this TX ('priority', 'normal', 'economy', 'superEconomy').
+  // * @param {number} opts.feePerKb - Optional. Specify the fee per KB for this TX (in satoshi).
+  // * @param {string} opts.payProUrl - Optional. Paypro URL for peers to verify TX
+  // * @param {Boolean} opts.excludeUnconfirmedUtxos[=false] - Optional. Do not use UTXOs of unconfirmed transactions as inputs
+  // * @param {Boolean} opts.validateOutputs[=true] - Optional. Perform validation on outputs.
+  // * @param {Boolean} opts.dryRun[=false] - Optional. Simulate the action but do not change server state.
+  // * @param {number} opts.fee - Optional. Use an fixed fee for this TX (only when opts.inputs is specified)
+  // * @param {Boolean} opts.noShuffleOutputs - Optional. If set, TX outputs won't be shuffled. Defaults to false
+  // * @param {String} opts.signingMethod - Optional. If set, force signing method (ecdsa or schnorr) otherwise use default for coin
+  // * @returns {Callback} cb - Return error or the transaction proposal
+  // * @param {String} baseUrl - Optional. ONLY FOR TESTING
+  // */
+  createAtomicswapRedeemTxProposal(opts, cb, baseUrl) {
+    $.checkState(this.credentials && this.credentials.isComplete());
+    $.checkState(this.credentials.sharedEncryptingKey);
+    $.checkArgument(opts);
+
+    // john 20210409
+    $.checkArgument(opts.atomicswap.contract);
+    let cnt = AuditContract(opts.atomicswap.contract);
+    if (!cnt.isAtomicSwap) {
+      cb(new Errors('atomicswap contract is invalid'));
+    }
+
+    let curTime = Math.round(new Date().getTime() / 1000);
+    let lockTime = cnt.lockTime;
+    if (lockTime > curTime) {
+      cb(new Errors('The lock time has not expired'));
+    }
+
+    $.checkArgument(opts.atomicswap.secret);
+    if (!JSUtil.isHexa(opts.atomicswap.secret) && opts.atomicswap.secret.length != 64) {
+      cb(new Errors('atomicswap secret is invalid'));
+    }
+    opts.atomicswap.redeem = true;
+    // BCH schnorr deployment
+    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+      opts.signingMethod = 'schnorr';
+    }
+
+    var args = this._getCreateTxProposalArgs(opts);
+    baseUrl = baseUrl || '/v3/redeemtxproposals/';
+    // baseUrl = baseUrl || '/v4/txproposals/'; // DISABLED 2020-04-07
+
+    this.request.post(baseUrl, args, (err, txp) => {
+      if (err) return cb(err);
+
+      this._processTxps(txp);
+      if (!Verifier.checkProposalCreation(args, txp, this.credentials.sharedEncryptingKey)) {
+        return cb(new Errors.SERVER_COMPROMISED());
+      }
+
+      return cb(null, txp);
+    });
+  }
+
+  // john 20210409
+  // /**
+  // * Create a atomicswap refunc transaction proposal
+  // *
+  // * @param {Object} opts
+  // * @param {string} opts.txProposalId - Optional. If provided it will be used as this TX proposal ID. Should be unique in the scope of the wallet.
+  // * @param {Array} opts.atomicswap - atomicswap.
+  // * @param {Array} opts.atomicswap.contract - atomicswap contract.
+  // * @param {Array} opts.outputs - List of outputs.
+  // * @param {string} opts.outputs[].toAddress - Destination address.
+  // * @param {string} opts.outputs[].message - A message to attach to this output.
+  // * @param {string} opts.message - A message to attach to this transaction.
+  // * @param {number} opts.feeLevel[='normal'] - Optional. Specify the fee level for this TX ('priority', 'normal', 'economy', 'superEconomy').
+  // * @param {number} opts.feePerKb - Optional. Specify the fee per KB for this TX (in satoshi).
+  // * @param {string} opts.payProUrl - Optional. Paypro URL for peers to verify TX
+  // * @param {Boolean} opts.excludeUnconfirmedUtxos[=false] - Optional. Do not use UTXOs of unconfirmed transactions as inputs
+  // * @param {Boolean} opts.validateOutputs[=true] - Optional. Perform validation on outputs.
+  // * @param {Boolean} opts.dryRun[=false] - Optional. Simulate the action but do not change server state.
+  // * @param {number} opts.fee - Optional. Use an fixed fee for this TX (only when opts.inputs is specified)
+  // * @param {Boolean} opts.noShuffleOutputs - Optional. If set, TX outputs won't be shuffled. Defaults to false
+  // * @param {String} opts.signingMethod - Optional. If set, force signing method (ecdsa or schnorr) otherwise use default for coin
+  // * @returns {Callback} cb - Return error or the transaction proposal
+  // * @param {String} baseUrl - Optional. ONLY FOR TESTING
+  // */
+  createAtomicswapRefundTxProposal(opts, cb, baseUrl) {
+    $.checkState(this.credentials && this.credentials.isComplete());
+    $.checkState(this.credentials.sharedEncryptingKey);
+    $.checkArgument(opts);
+
+    // john 20210409
+    $.checkArgument(opts.atomicswap.contract);
+    let cnt = AuditContract(opts.atomicswap.contract);
+    if (!cnt.isAtomicSwap) {
+      cb(new Errors('atomicswap contract is invalid'));
+    }
+    opts.atomicswap.redeem = false;
+
+    let curTime = Math.round(new Date().getTime() / 1000);
+    let lockTime = cnt.lockTime;
+    if (lockTime > curTime) {
+      cb(new Errors('The lock time has not expired'));
+    }
+
+    // BCH schnorr deployment
+    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+      opts.signingMethod = 'schnorr';
+    }
+
+    var args = this._getCreateTxProposalArgs(opts);
+    baseUrl = baseUrl || '/v3/redeemtxproposals/';
+    // baseUrl = baseUrl || '/v4/txproposals/'; // DISABLED 2020-04-07
+
+    this.request.post(baseUrl, args, (err, txp) => {
+      if (err) return cb(err);
+
+      this._processTxps(txp);
+      if (!Verifier.checkProposalCreation(args, txp, this.credentials.sharedEncryptingKey)) {
+        return cb(new Errors.SERVER_COMPROMISED());
+      }
+
+      return cb(null, txp);
+    });
+  }
+
+  // john 20210409
+  // /**
+  // * Create a atomicswap initiate transaction proposal
+  // *
+  // * @param {Object} opts
+  // * @param {string} opts.txProposalId - Optional. If provided it will be used as this TX proposal ID. Should be unique in the scope of the wallet.
+  // * @param {Array} opts.atomicswap - atomicswap.
+  // * @param {Array} opts.atomicswap.secretHash - atomicswap secretHash.
+  // * @param {Array} opts.outputs - List of outputs.
+  // * @param {string} opts.outputs[].toAddress - Destination address.
+  // * @param {string} opts.outputs[].amount - Destination amount.
+  // * @param {string} opts.outputs[].message - A message to attach to this output.
+  // * @param {string} opts.message - A message to attach to this transaction.
+  // * @param {number} opts.feeLevel[='normal'] - Optional. Specify the fee level for this TX ('priority', 'normal', 'economy', 'superEconomy').
+  // * @param {number} opts.feePerKb - Optional. Specify the fee per KB for this TX (in satoshi).
+  // * @param {string} opts.payProUrl - Optional. Paypro URL for peers to verify TX
+  // * @param {Boolean} opts.excludeUnconfirmedUtxos[=false] - Optional. Do not use UTXOs of unconfirmed transactions as inputs
+  // * @param {Boolean} opts.validateOutputs[=true] - Optional. Perform validation on outputs.
+  // * @param {Boolean} opts.dryRun[=false] - Optional. Simulate the action but do not change server state.
+  // * @param {number} opts.fee - Optional. Use an fixed fee for this TX (only when opts.inputs is specified)
+  // * @param {Boolean} opts.noShuffleOutputs - Optional. If set, TX outputs won't be shuffled. Defaults to false
+  // * @param {String} opts.signingMethod - Optional. If set, force signing method (ecdsa or schnorr) otherwise use default for coin
+  // * @returns {Callback} cb - Return error or the transaction proposal
+  // * @param {String} baseUrl - Optional. ONLY FOR TESTING
+  // */
+  createAtomicSwapInitiateTxProposal(opts, cb, baseUrl) {
+    $.checkState(this.credentials && this.credentials.isComplete());
+    $.checkState(this.credentials.sharedEncryptingKey);
+    $.checkArgument(opts);
+
+    $.checkArgument(opts.atomicswap.secretHash);
+    if (!JSUtil.isHexa(opts.atomicswap.secretHash) && opts.atomicswap.secretHash.length != 64) {
+      cb(new Errors('atomicswap secretHash is invalid'));
+    }
+    opts.atomicswap.initiate = true;
+    if (opts.outputs && opts.outputs.length != 1) {
+      cb(new Errors('The number of atomicswap outputs must be one'));
+    }
+
+    // BCH schnorr deployment
+    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+      opts.signingMethod = 'schnorr';
+    }
+
+    var args = this._getCreateTxProposalArgs(opts);
+    baseUrl = baseUrl || '/v3/atomicswaptxproposals/';
+    // baseUrl = baseUrl || '/v4/txproposals/'; // DISABLED 2020-04-07
+
+    this.request.post(baseUrl, args, (err, txp) => {
+      if (err) return cb(err);
+
+      this._processTxps(txp);
+      if (!Verifier.checkProposalCreation(args, txp, this.credentials.sharedEncryptingKey)) {
+        return cb(new Errors.SERVER_COMPROMISED());
+      }
+
+      return cb(null, txp);
+    });
+  }
+
+  // john 20210409
+  // /**
+  // * Create a atomicswap participate transaction proposal
+  // *
+  // * @param {Object} opts
+  // * @param {string} opts.txProposalId - Optional. If provided it will be used as this TX proposal ID. Should be unique in the scope of the wallet.
+  // * @param {Array} opts.atomicswap - atomicswap.
+  // * @param {Array} opts.atomicswap.secretHash - atomicswap secretHash.
+  // * @param {Array} opts.outputs - List of outputs.
+  // * @param {string} opts.outputs[].toAddress - Destination address.
+  // * @param {string} opts.outputs[].amount - Destination amount.
+  // * @param {string} opts.outputs[].message - A message to attach to this output.
+  // * @param {string} opts.message - A message to attach to this transaction.
+  // * @param {number} opts.feeLevel[='normal'] - Optional. Specify the fee level for this TX ('priority', 'normal', 'economy', 'superEconomy').
+  // * @param {number} opts.feePerKb - Optional. Specify the fee per KB for this TX (in satoshi).
+  // * @param {string} opts.payProUrl - Optional. Paypro URL for peers to verify TX
+  // * @param {Boolean} opts.excludeUnconfirmedUtxos[=false] - Optional. Do not use UTXOs of unconfirmed transactions as inputs
+  // * @param {Boolean} opts.validateOutputs[=true] - Optional. Perform validation on outputs.
+  // * @param {Boolean} opts.dryRun[=false] - Optional. Simulate the action but do not change server state.
+  // * @param {number} opts.fee - Optional. Use an fixed fee for this TX (only when opts.inputs is specified)
+  // * @param {Boolean} opts.noShuffleOutputs - Optional. If set, TX outputs won't be shuffled. Defaults to false
+  // * @param {String} opts.signingMethod - Optional. If set, force signing method (ecdsa or schnorr) otherwise use default for coin
+  // * @returns {Callback} cb - Return error or the transaction proposal
+  // * @param {String} baseUrl - Optional. ONLY FOR TESTING
+  // */
+  createAtomicSwapParticipateTxProposal(opts, cb, baseUrl) {
+    $.checkState(this.credentials && this.credentials.isComplete());
+    $.checkState(this.credentials.sharedEncryptingKey);
+    $.checkArgument(opts);
+
+    $.checkArgument(opts.atomicswap.secretHash);
+    if (!JSUtil.isHexa(opts.atomicswap.secretHash) && opts.atomicswap.secretHash.length != 64) {
+      cb(new Errors('atomicswap secretHash is invalid'));
+    }
+    opts.atomicswap.initiate = false;
+    if (opts.outputs && opts.outputs.length != 1) {
+      cb(new Errors('The number of atomicswap outputs must be one'));
+    }
+
+    // BCH schnorr deployment
+    if (!opts.signingMethod && this.credentials.coin == 'bch' && this.credentials.network == 'testnet') {
+      opts.signingMethod = 'schnorr';
+    }
+
+    var args = this._getCreateTxProposalArgs(opts);
+    baseUrl = baseUrl || '/v3/atomicswaptxproposals/';
     // baseUrl = baseUrl || '/v4/txproposals/'; // DISABLED 2020-04-07
 
     this.request.post(baseUrl, args, (err, txp) => {
@@ -1316,16 +1558,18 @@ export class API extends EventEmitter {
     $.checkState(parseInt(opts.txp.version) >= 3);
 
     var t = Utils.buildTx(opts.txp);
-    var hash;
-
-    if (opts.txp.coin == 'vcl') {
-      hash = t.uncheckedSerialize1();
-    } else {
-      hash = t.uncheckedSerialize();
+    if (opts.txp.atomicswap && opts.txp.atomicswap.isAtomicSwap && opts.txp.atomicswap.redeem != undefined) {
+      t.inputs[0].output.setScript(opts.txp.atomicswap.contract);
+      if (!opts.txp.atomicswap.redeem) {
+        t.lockUntilDate(opts.txp.atomicswap.lockTime);
+      } else {
+        t.nLockTime = opts.txp.atomicswap.lockTime;
+      }
     }
-
+    // john
+    var hash = t.uncheckedSerialize1();
     var args = {
-      proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey, opts.txp.coin)
+      proposalSignature: Utils.signMessage(hash, this.credentials.requestPrivKey)
     };
 
     var url = '/v2/txproposals/' + opts.txp.id + '/publish/';
@@ -1372,6 +1616,7 @@ export class API extends EventEmitter {
   // * Get your main addresses
   // *
   // * @param {Object} opts
+  // * @param {Boolean} opts.address	// john 20210409
   // * @param {Boolean} opts.doNotVerify
   // * @param {Numeric} opts.limit (optional) - Limit the resultset. Return all addresses by default.
   // * @param {Boolean} [opts.reverse=false] (optional) - Reverse the order of returned addresses.
@@ -1386,6 +1631,7 @@ export class API extends EventEmitter {
     var args = [];
     if (opts.limit) args.push('limit=' + opts.limit);
     if (opts.reverse) args.push('reverse=1');
+    if (opts.address) args.push('address=' + opts.address);
     var qs = '';
     if (args.length > 0) {
       qs = '?' + args.join('&');
@@ -1410,7 +1656,6 @@ export class API extends EventEmitter {
   // *
   // * @param {String} opts.coin - Optional: defaults to current wallet coin
   // * @param {String} opts.tokenAddress - Optional: ERC20 token contract address
-  // * @param {String} opts.multisigContractAddress optional: MULTISIG ETH Contract Address
   // * @param {Callback} cb
   // */
   getBalance(opts, cb) {
@@ -1431,9 +1676,6 @@ export class API extends EventEmitter {
     }
     if (opts.tokenAddress) {
       args.push('tokenAddress=' + opts.tokenAddress);
-    }
-    if (opts.multisigContractAddress) {
-      args.push('multisigContractAddress=' + opts.multisigContractAddress);
     }
     var qs = '';
     if (args.length > 0) {
@@ -1501,6 +1743,62 @@ export class API extends EventEmitter {
     });
   }
 
+  // /**
+  // * Get list of atomicswap transactions proposals
+  // *
+  // * @param {Object} opts
+  // * @param {Boolean} opts.doNotVerify
+  // * @param {Boolean} opts.forAirGapped
+  // * @param {Boolean} opts.doNotEncryptPkr
+  // * @return {Callback} cb - Return error or array of transactions proposals
+  // */
+  getAtomicSwapTxProposals(opts, cb) {
+    $.checkState(this.credentials && this.credentials.isComplete());
+
+    this.request.get('/v2/atomicswaptxproposals/', (err, txps) => {
+      if (err) return cb(err);
+      this._processTxps(txps);
+      async.every(
+        txps,
+        (txp, acb) => {
+          if (opts.doNotVerify) return acb(true);
+          this.getPayProV2(txp)
+            .then(paypro => {
+              var isLegit = Verifier.checkTxProposal(this.credentials, txp, {
+                paypro
+              });
+
+              return acb(isLegit);
+            })
+            .catch(err => {
+              return acb(err);
+            });
+        },
+        isLegit => {
+          if (!isLegit) return cb(new Errors.SERVER_COMPROMISED());
+
+          var result;
+          if (opts.forAirGapped) {
+            result = {
+              txps: JSON.parse(JSON.stringify(txps)),
+              encryptedPkr: opts.doNotEncryptPkr
+                ? null
+                : Utils.encryptMessage(
+                    JSON.stringify(this.credentials.publicKeyRing),
+                    this.credentials.personalEncryptingKey
+                  ),
+              unencryptedPkr: opts.doNotEncryptPkr ? JSON.stringify(this.credentials.publicKeyRing) : null,
+              m: this.credentials.m,
+              n: this.credentials.n
+            };
+          } else {
+            result = txps;
+          }
+          return cb(null, result);
+        }
+      );
+    });
+  }
   // private?
   getPayPro(txp, cb) {
     if (!txp.payProUrl || this.doNotVerifyPayPro) return cb();
@@ -1526,15 +1824,11 @@ export class API extends EventEmitter {
 
     const chain = Utils.getChain(txp.coin);
     const currency = txp.coin.toUpperCase();
-    const payload = {
-      address: txp.from
-    };
 
     return PayProV2.selectPaymentOption({
       paymentUrl: txp.payProUrl,
       chain,
-      currency,
-      payload
+      currency
     });
   }
 
@@ -1555,6 +1849,18 @@ export class API extends EventEmitter {
       return cb('No signatures to push. Sign the transaction with Key first');
     }
 
+    // john
+    if (
+      txp.atomicswap &&
+      txp.atomicswap.redeem &&
+      (!JSUtil.isHexa(txp.atomicswap.secret) ||
+        txp.atomicswap.secret.length != 64 ||
+        txp.atomicswapSecretHash !=
+          Bitcore.crypto.Hash.sha256(Buffer.from(txp.atomicswap.secret, 'hex')).toString('hex'))
+    ) {
+      return cb('Invalid atomicswap secret');
+    }
+
     this.getPayProV2(txp)
       .then(paypro => {
         var isLegit = Verifier.checkTxProposal(this.credentials, txp, {
@@ -1563,14 +1869,23 @@ export class API extends EventEmitter {
 
         if (!isLegit) return cb(new Errors.SERVER_COMPROMISED());
 
-        let defaultBase = '/v2/txproposals/';
+        let defaultBase = '/v1/txproposals/';
+        if (txp.coin === 'bch' && txp.network === 'testnet') {
+          defaultBase = '/v2/txproposals/';
+        }
+
         base = base || defaultBase;
         //        base = base || '/v2/txproposals/'; // DISABLED 2020-04-07
 
         let url = base + txp.id + '/signatures/';
 
+        let atomicswapSecret;
+        if (txp.atomicswap && txp.atomicswap.secret) {
+          atomicswapSecret = txp.atomicswap.secret;
+        }
         var args = {
-          signatures
+          signatures,
+          atomicswapSecret // john 20210409
         };
         this.request.post(url, args, (err, txp) => {
           if (err) return cb(err);
@@ -1582,119 +1897,6 @@ export class API extends EventEmitter {
         return cb(err);
       });
   }
-
-  /**
-   * Create advertisement for bitpay app - (limited to marketing staff)
-   * @param opts - options
-   */
-  createAdvertisement(opts, cb) {
-    // TODO add check for preconditions of title, imgUrl, linkUrl
-
-    var url = '/v1/advertisements/';
-    let args = opts;
-
-    this.request.post(url, args, (err, createdAd) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, createdAd);
-    });
-  }
-
-  /**
-   * Get advertisements for bitpay app - (limited to marketing staff)
-   * @param opts - options
-   * @param opts.testing - if set, fetches testing advertisements
-   */
-  getAdvertisements(opts, cb) {
-    var url = '/v1/advertisements/';
-    if (opts.testing === true) {
-      url = '/v1/advertisements/' + '?testing=true';
-    }
-
-    this.request.get(url, (err, ads) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, ads);
-    });
-  }
-
-  /**
-   * Get advertisements for bitpay app, for specified country - (limited to marketing staff)
-   * @param opts - options
-   * @param opts.country - if set, fetches ads by Country
-   */
-  getAdvertisementsByCountry(opts, cb) {
-    var url = '/v1/advertisements/country/' + opts.country;
-
-    this.request.get(url, (err, ads) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, ads);
-    });
-  }
-
-  /**
-   * Get Advertisement
-   * @param opts - options
-   */
-  getAdvertisement(opts, cb) {
-    var url = '/v1/advertisements/' + opts.adId; // + adId or adTitle;
-    this.request.get(url, (err, body) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, body);
-    });
-  }
-
-  /**
-   * Activate Advertisement
-   * @param opts - options
-   */
-  activateAdvertisement(opts, cb) {
-    var url = '/v1/advertisements/' + opts.adId + '/activate'; // + adId or adTitle;
-    let args = opts;
-    this.request.post(url, args, (err, body) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, body);
-    });
-  }
-
-  /**
-   * Deactivate Advertisement
-   * @param opts - options
-   */
-  deactivateAdvertisement(opts, cb) {
-    var url = '/v1/advertisements/' + opts.adId + '/deactivate'; // + adId or adTitle;
-    let args = opts;
-    this.request.post(url, args, (err, body) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, body);
-    });
-  }
-
-  /**
-   * Delete Advertisement
-   * @param opts - options
-   */
-  deleteAdvertisement(opts, cb) {
-    var url = '/v1/advertisements/' + opts.adId; // + adId or adTitle;
-    this.request.delete(url, (err, body) => {
-      if (err) {
-        return cb(err);
-      }
-      return cb(null, body);
-    });
-  }
-
-  /*
 
   // /**
   // * Sign transaction proposal from AirGapped
@@ -1969,7 +2171,6 @@ export class API extends EventEmitter {
   // * @param {Number} opts.skip (defaults to 0)
   // * @param {Number} opts.limit
   // * @param {String} opts.tokenAddress
-  // * @param {String} opts.multisigContractAddress (optional: MULTISIG ETH Contract Address)
   // * @param {Boolean} opts.includeExtendedInfo
   // * @param {Callback} cb
   // * @return {Callback} cb - Return error or array of transactions
@@ -1982,7 +2183,6 @@ export class API extends EventEmitter {
       if (opts.skip) args.push('skip=' + opts.skip);
       if (opts.limit) args.push('limit=' + opts.limit);
       if (opts.tokenAddress) args.push('tokenAddress=' + opts.tokenAddress);
-      if (opts.multisigContractAddress) args.push('multisigContractAddress=' + opts.multisigContractAddress);
       if (opts.includeExtendedInfo) args.push('includeExtendedInfo=1');
     }
     var qs = '';
@@ -2054,8 +2254,7 @@ export class API extends EventEmitter {
     $.shouldBeString(opts.signature, 'no signature at addAccess()');
 
     opts = opts || {};
-    var coin = opts.coin || 'vcl';
-    var requestPubKey = new Bitcore_[coin].PrivateKey(opts.requestPrivKey).toPublicKey().toString();
+    var requestPubKey = new Bitcore.PrivateKey(opts.requestPrivKey).toPublicKey().toString();
     var copayerId = this.credentials.copayerId;
     var encCopayerName = opts.name ? Utils.encryptMessage(opts.name, this.credentials.sharedEncryptingKey) : null;
 
@@ -2256,35 +2455,6 @@ export class API extends EventEmitter {
   }
 
   // /**
-  // * Returns contract instantiation info. (All contract addresses instantiated by that sender with the current transaction hash and block number)
-  // * @param {string} opts.sender - sender eth wallet address
-  // * @param {string} opts.txId - instantiation transaction id
-  // * @return {Callback} cb - Return error (if exists) instantiation info
-  // */
-  getMultisigContractInstantiationInfo(opts, cb) {
-    var url = '/v1/ethmultisig/';
-    opts.network = this.credentials.network;
-    this.request.post(url, opts, (err, contractInstantiationInfo) => {
-      if (err) return cb(err);
-      return cb(null, contractInstantiationInfo);
-    });
-  }
-
-  // /**
-  // * Returns contract info. (owners addresses and required number of confirmations)
-  // * @param {string} opts.multisigContractAddress - multisig contract address
-  // * @return {Callback} cb - Return error (if exists) instantiation info
-  // */
-  getMultisigContractInfo(opts, cb) {
-    var url = '/v1/ethmultisig/info';
-    opts.network = this.credentials.network;
-    this.request.post(url, opts, (err, contractInfo) => {
-      if (err) return cb(err);
-      return cb(null, contractInfo);
-    });
-  }
-
-  // /**
   // * Get wallet status based on a string identifier (one of: walletId, address, txid)
   // *
   // * @param {string} opts.identifier - The identifier
@@ -2457,7 +2627,7 @@ export class API extends EventEmitter {
       // Find and merge dup keys.
       let credGroups = _.groupBy(newCrededentials, x => {
         $.checkState(x.xPubKey, 'no xPubKey at credentials!');
-        let xpub = new Bitcore_[x.coin].HDPublicKey(x.xPubKey);
+        let xpub = new Bitcore.HDPublicKey(x.xPubKey);
         let fingerPrint = xpub.fingerPrint.toString('hex');
         return fingerPrint;
       });
@@ -2557,39 +2727,6 @@ export class API extends EventEmitter {
               clients.push(tokenClient);
             });
           }
-          // Eth wallet with mulsig wallets?
-          const multisigEthInfo = status.preferences.multisigEthInfo;
-          if (!_.isEmpty(multisigEthInfo)) {
-            _.each(multisigEthInfo, info => {
-              log.info(
-                `Importing multisig wallet. Address: ${info.multisigContractAddress} - m: ${info.m} - n: ${info.n}`
-              );
-              const multisigEthCredentials = client.credentials.getMultisigEthCredentials({
-                walletName: info.walletName,
-                multisigContractAddress: info.multisigContractAddress,
-                n: info.n,
-                m: info.m
-              });
-              let multisigEthClient = _.cloneDeep(client);
-              multisigEthClient.credentials = multisigEthCredentials;
-              clients.push(multisigEthClient);
-              const tokenAddresses = info.tokenAddresses;
-              if (!_.isEmpty(tokenAddresses)) {
-                _.each(tokenAddresses, t => {
-                  const token = Constants.TOKEN_OPTS[t];
-                  if (!token) {
-                    log.warn(`Token ${t} unknown`);
-                    return;
-                  }
-                  log.info(`Importing multisig token: ${token.name}`);
-                  const tokenCredentials = multisigEthClient.credentials.getTokenCredentials(token);
-                  let tokenClient = _.cloneDeep(multisigEthClient);
-                  tokenClient.credentials = tokenCredentials;
-                  clients.push(tokenClient);
-                });
-              }
-            });
-          }
           return icb(null, clients);
         }
         if (err instanceof Errors.NOT_AUTHORIZED || err instanceof Errors.WALLET_DOES_NOT_EXIST) {
@@ -2603,15 +2740,7 @@ export class API extends EventEmitter {
     var checkKey = (key, cb) => {
       let opts = [
         // coin, network,  multisig
-        ['btc', 'livenet'],
-        ['bch', 'livenet'],
-        ['eth', 'livenet'],
-        ['eth', 'testnet'],
-        ['xrp', 'livenet'],
-        ['xrp', 'testnet'],
         ['vcl', 'livenet'],
-        ['btc', 'livenet', true],
-        ['bch', 'livenet', true],
         ['vcl', 'livenet', true]
       ];
       if (key.use44forMultisig) {
@@ -2805,23 +2934,6 @@ export class API extends EventEmitter {
     });
   }
 
-  wyreWalletOrderQuotation(data): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.request.post('/v1/service/wyre/walletOrderQuotation', data, (err, data) => {
-        if (err) return reject(err);
-        return resolve(data);
-      });
-    });
-  }
-
-  wyreWalletOrderReservation(data): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.request.post('/v1/service/wyre/walletOrderReservation', data, (err, data) => {
-        if (err) return reject(err);
-        return resolve(data);
-      });
-    });
-  }
   // john
   // * get masternode collateral
   // *
@@ -3006,6 +3118,8 @@ export class API extends EventEmitter {
     if (!opts.masternodeKey) return cb(new Error('Not masternode private key'));
     args.masternodeKey = opts.masternodeKey;
 
+    if (opts.jsonHeader) args.jsonHeader = opts.jsonHeader;
+
     var url = '/v1/masternode/broadcast/';
     this.request.post(url, args, (err, body) => {
       if (err) return cb(err);
@@ -3082,7 +3196,7 @@ export class API extends EventEmitter {
     if (!opts.pingHeight) return cb(new Error('Not ping block height'));
     if (!opts.pingHash) return cb(new Error('Not ping blockhash'));
     if (!opts.privKey) return cb(new Error('Not masternode private key'));
-    if (!Utils.isPrivateKey(opts.privKey, opts.coin)) {
+    if (!Utils.isPrivateKey(opts.privKey)) {
       return cb(new Error('Invalid masternode private key'));
     }
 
@@ -3102,80 +3216,114 @@ export class API extends EventEmitter {
     }
 
     opts = opts || {};
-    
+
     var coin = opts.coin || 'vcl';
     var network = opts.network || 'livenet';
 
     if (!opts.address) return cb(new Error('Not address'));
- 
-    if (CWC.Validation.validateAddress(coin, network, opts.address)) {    
+
+    if (CWC.Validation.validateAddress(coin, network, opts.address)) {
       return cb(null, true);
     }
     return cb(new Error('Invalid address'), false);
+  }
+
+  auditContract(opts, cb) {
+    if (!cb) {
+      cb = opts;
+      opts = {};
+      log.warn('DEPRECATED WARN: isValidAddress should receive 2 parameters.');
+    }
+
+    opts = opts || {};
+
+    var coin = opts.coin || 'vcl';
+    var network = opts.network || 'livenet';
+
+    if (!opts.contract) return cb(new Error('Not contract'));
+
+    if (!JSUtil.isHexa(opts.contract)) {
+      cb(new Error('contract must be hex string'));
+    }
+
+    let cnt = AuditContract(opts.contract);
+    if (!cnt.isAtomicSwap) {
+      cb(new Error('atomicswap contract invalid'));
+    }
+
+    this.getMainAddresses({ coin, network, address: cnt.recipientAddr }, (err, addresses) => {
+      if (err) cb(err);
+      if (addresses && addresses.length > 0) {
+        cb(null, cnt);
+      }
+    });
   }
 
   createReward(opts, cb) {
     async.waterfall(
       [
         next => {
-	  this.openWallet(opts, 
-	    (err, walletStatus) => {
-	      if(err){
-		return next(new Error('open wallet error!'), err);
-	      }
-	      return next(null, walletStatus);
-	    }
-	  );
+          this.openWallet(opts, (err, walletStatus) => {
+            if (err) {
+              return next(new Error('open wallet error!'), err);
+            }
+            return next(null, walletStatus);
+          });
         },
         (walletStatus, next) => {
-          if(walletStatus.wallet.status != 'complete'){
-  	    return next(new Error('wallet no complete!'), walletStatus);
+          if (walletStatus.wallet.status != 'complete') {
+            return next(new Error('wallet no complete!'), walletStatus);
           }
-	  this.createTxProposal(opts, 
-	    function(err, createTxp){
-    	      if(err){
-		return next(new Error('create TxProposal error!'), err);
-	      }
-	      return next(null, createTxp);	  
-	    }
-	  ,'');  
-        },
-	(createTxp, next) => {
-	  this.publishTxProposal({txp:createTxp}, 
-	    (err, publishTxp) => {
-      	      if(err){
-		return next(new Error('publish TxProposal error!'), err);
+          this.createTxProposal(
+            opts,
+            function(err, createTxp) {
+              if (err) {
+                return next(new Error('create TxProposal error!'), err);
               }
-	      return next(null, publishTxp);		
-	    }
+              return next(null, createTxp);
+            },
+            ''
           );
-	},
-	(publishTxp, next) => {
-	  let signatures = opts.key.sign(this.getRootPath(), publishTxp);
-          this.pushSignatures(publishTxp, signatures, 
-	    function(err, rawHex, paypro) {
-              if(err){
-		return next(new Error('push Signatures error!'), err);
+        },
+        (createTxp, next) => {
+          this.publishTxProposal({ txp: createTxp }, (err, publishTxp) => {
+            if (err) {
+              return next(new Error('publish TxProposal error!'), err);
+            }
+            return next(null, publishTxp);
+          });
+        },
+        (publishTxp, next) => {
+          let signatures = opts.key.sign(this.getRootPath(), publishTxp);
+          this.pushSignatures(
+            publishTxp,
+            signatures,
+            function(err, rawHex, paypro) {
+              if (err) {
+                return next(new Error('push Signatures error!'), err);
               }
-	      return next(null, rawHex);
-	    }
-	  ,'');
-	},
-        (rawHex ,next) => {
-	  this.broadcastTxProposal(rawHex, 
-	    (err, zz, memo) => {
-              if(err){
-		return next(new Error('broadcast TxProposal error!'), err);
-	      }
-	      return cb(null, zz.txid);
-     	    }
-	  );
-	}
-      ], 
-      function (err, errMsg) {
-	cb(errMsg, null);
+              return next(null, rawHex);
+            },
+            ''
+          );
+        },
+        (rawHex, next) => {
+          this.broadcastTxProposal(rawHex, (err, zz, memo) => {
+            if (err) {
+              return next(new Error('broadcast TxProposal error!'), err);
+            }
+            return cb(null, zz.txid);
+          });
+        }
+      ],
+      function(err, errMsg) {
+        cb(errMsg, null);
       }
     );
   }
 
+  decryMessage(msg, key, cb) {
+    var ret = Utils.decryptMessage(msg, key);
+    return cb(null, ret);
+  }
 }

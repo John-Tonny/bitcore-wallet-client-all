@@ -6,8 +6,8 @@ var async = require('async');
 var chai = require('chai');
 var sinon = require('sinon');
 var should = chai.should();
-const { logger, transport } = require('../../ts_build/lib/logger.js');
-transport.level= 'error';
+var log = require('npmlog');
+log.debug = log.verbose;
 
 var WalletService = require('../../ts_build/lib/server');
 var EmailService = require('../../ts_build/lib/emailservice');
@@ -20,6 +20,7 @@ describe('Email notifications', function() {
   var storage, server, wallet, mailerStub, emailService;
 
   before(function(done) {
+    log.level = 'error';
     helpers.before((res) => {
       storage = res.storage;
       done();

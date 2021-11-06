@@ -1,7 +1,14 @@
+let dbUrl = 'mongodb://localhost:27017/bws';
+if (process.env.DB_URL) {
+  dbUrl = process.env.DB_URL + '/bws';
+}
 module.exports = {
   basePath: '/bws/api',
   disableLogs: false,
   port: 3232,
+
+  // john
+  ignoreRateLimiter: true,
 
   // Uncomment to make BWS a forking server
   // cluster: true,
@@ -21,8 +28,8 @@ module.exports = {
 
   storageOpts: {
     mongoDb: {
-      uri: 'mongodb://localhost:27017/bws',
-      dbname: 'bws'
+      uri: dbUrl
+      // uri:  process.env.DB_URL + '/bws' || 'mongodb://localhost:27017/bws'
     }
   },
   messageBrokerOpts: {
@@ -32,48 +39,15 @@ module.exports = {
     }
   },
   blockchainExplorerOpts: {
-    btc: {
-      livenet: {
-        url: 'https://api.bitcore.io'
-      },
-      testnet: {
-        url: 'https://api.bitcore.io',
-        regtestEnabled: false
-      }
-    },
-    bch: {
-      livenet: {
-        url: 'https://api.bitcore.io'
-      },
-      testnet: {
-        url: 'https://api.bitcore.io'
-      }
-    },
-    eth: {
-      livenet: {
-	url: 'http://localhost:3000'
-      },
-      testnet: {
-	url: 'http://localhost:3000'
-      }
-    },
-    xrp: {
-      livenet: {
-        url: 'https://api-xrp.bitcore.io'
-      },
-      testnet: {
-        url: 'https://api-xrp.bitcore.io'
-      }
-    },
     // john
     vcl: {
       livenet: {
         url: 'http://localhost:3000'
-      } ,
+      } /*,
       testnet: {
-        url: 'http://localhost:3000'
-      }
-    },    
+        url: 'http://localhost:3100'
+      }*/
+    },
     socketApiKey: 'L2mPTvucM9CNvUU6MaJwUpYiLEDN9TLa3g3Fv4Fu8CnZob4ADZdJ'
   },
   pushNotificationsOpts: {
@@ -104,22 +78,6 @@ module.exports = {
   //     apiKey: 'simplex_production_api_key_here',
   //     api: 'https://backend-wallet-api.simplexcc.com',
   //     appProviderId: 'simplex_provider_id_here'
-  //   }
-  // },
-  // wyre: {
-  //   sandbox: {
-  //     apiKey: 'wyre_sandbox_api_key_here',
-  //     secretApiKey: 'wyre_sandbox_secret_api_key_here',
-  //     api: 'https://api.testwyre.com',
-  //     widgetUrl: 'https://pay.testwyre.com',
-  //     appProviderAccountId: 'wyre_provider_sandbox_account_id_here'
-  //   },
-  //   production: {
-  //     apiKey: 'wyre_production_api_key_here',
-  //     secretApiKey: 'wyre_production_secret_api_key_here',
-  //     api: 'https://api.sendwyre.com',
-  //     widgetUrl: 'https://pay.sendwyre.com/',
-  //     appProviderAccountId: 'wyre_provider_production_account_id_here'
   //   }
   // },
   // To use email notifications uncomment this:

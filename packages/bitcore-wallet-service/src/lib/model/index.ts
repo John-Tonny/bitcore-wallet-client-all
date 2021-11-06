@@ -1,7 +1,7 @@
 export { Address } from './address';
 export { Copayer } from './copayer';
-export { Advertisement } from './advertisement';
 export { Email } from './email';
+export { IMasternode, Masternodes } from './masternodes';
 export { INotification, Notification } from './notification';
 export { IPreferences, Preferences } from './preferences';
 export { PushNotificationSub } from './pushnotificationsub';

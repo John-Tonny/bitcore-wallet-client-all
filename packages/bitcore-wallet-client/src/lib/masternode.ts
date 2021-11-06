@@ -153,10 +153,8 @@ export class Masternode {
     var pingTime = this.get_now_time();
     presult += pingTime;
     presult += '01';
-    presult += this.get_int32(1);
-    presult += this.get_int32(1);
-    // presult += this.get_int32(parseInt(parseInt(CLIENT_SENTINEL_VERSION)/1000000));
-    // presult += this.get_int32(parseInt(parseInt(CLIENT_MASTERNODE_VERSION)/1000000));
+    presult += this.get_int32(Math.floor(CLIENT_SENTINEL_VERSION / 1000000));
+    presult += this.get_int32(Math.floor(CLIENT_MASTERNODE_VERSION / 1000000));
 
     var pingMsg = new Bitcore.Message(presult);
     var pingKey = new Bitcore.PrivateKey(this.privKey);
@@ -200,14 +198,12 @@ export class Masternode {
     sresult += this.hash_decode();
     sresult += pingTime;
 
-    sresult += this.get_varintNum(sig.length / 2);
+    sresult += this.get_varintNum(pingSig.length / 2);
     sresult += pingSig;
 
     sresult += '01';
-    sresult += this.get_int32(1000000);
-    sresult += this.get_int32(1010191);
-    // sresult += this.get_int32(parseInt(CLIENT_SENTINEL_VERSION));
-    // sresult += this.get_int32(parseInt(CLIENT_MASTERNODE_VERSION));
+    sresult += this.get_int32(CLIENT_SENTINEL_VERSION);
+    sresult += this.get_int32(CLIENT_MASTERNODE_VERSION);
 
     var retrys = 0;
     sresult += this.get_int32(retrys);

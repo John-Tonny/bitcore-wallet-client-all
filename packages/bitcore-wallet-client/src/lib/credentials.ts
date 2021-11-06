@@ -1,17 +1,12 @@
 'use strict';
 
-import * as CWC from 'crypto-wallet-core';
+import { VircleLib } from 'crypto-wallet-core';
+
 import { Constants, Utils } from './common';
 const $ = require('preconditions').singleton();
 const _ = require('lodash');
 
-var Bitcore_ = {
-  btc: CWC.BitcoreLib,
-  bch: CWC.BitcoreLibCash,
-  eth: CWC.BitcoreLib,
-  xrp: CWC.BitcoreLib,
-  vcl: CWC.VircleLib
-};
+const Bitcore = VircleLib;
 const sjcl = require('sjcl');
 
 export class Credentials {
@@ -48,8 +43,7 @@ export class Credentials {
     'version',
     'rootPath', // this is only for information
     'keyId', // this is only for information
-    'token', // this is for a ERC20 token
-    'multisigEthInfo' // this is for a MULTISIG eth wallet
+    'token' // is this wallet is for a ERC20 token
   ];
   version: number;
   account: number;
@@ -71,7 +65,6 @@ export class Credentials {
   addressType: string;
   keyId: string;
   token?: string;
-  multisigEthInfo?: any;
   externalSource?: boolean; // deprecated property?
 
   constructor() {
@@ -117,13 +110,13 @@ export class Credentials {
     }
     x.requestPrivKey = opts.requestPrivKey;
 
-    const priv = Bitcore_[opts.coin].PrivateKey(x.requestPrivKey);
+    const priv = Bitcore.PrivateKey(x.requestPrivKey);
     x.requestPubKey = priv.toPublicKey().toString();
 
     const prefix = 'personalKey';
-    const entropySource = Bitcore_[opts.coin].crypto.Hash.sha256(priv.toBuffer()).toString('hex');
+    const entropySource = Bitcore.crypto.Hash.sha256(priv.toBuffer()).toString('hex');
     const b = Buffer.from(entropySource, 'hex');
-    const b2 = Bitcore_[opts.coin].crypto.Hash.sha256hmac(b, Buffer.from(prefix));
+    const b2 = Bitcore.crypto.Hash.sha256hmac(b, Buffer.from(prefix));
     x.personalEncryptingKey = b2.slice(0, 16).toString('base64');
     x.copayerId = Utils.xPubToCopayerId(x.coin, x.xPubKey);
     x.publicKeyRing = [
@@ -146,24 +139,6 @@ export class Credentials {
     ret.walletName = token.name;
     ret.token = token;
 
-    return ret;
-  }
-
-  /*
-   * creates a Multisig wallet from a ETH wallet
-   */
-  getMultisigEthCredentials(multisigEthInfo: {
-    multisigContractAddress: string;
-    walletName: string;
-    n: string;
-    m: string;
-  }) {
-    const ret = _.cloneDeep(this);
-    ret.walletId = `${ret.walletId}-${multisigEthInfo.multisigContractAddress}`;
-    ret.walletName = multisigEthInfo.walletName;
-    ret.n = multisigEthInfo.n;
-    ret.m = multisigEthInfo.m;
-    ret.multisigEthInfo = multisigEthInfo;
     return ret;
   }
 
@@ -248,10 +223,9 @@ export class Credentials {
     });
     return x;
   }
-  addWalletPrivateKey(walletPrivKey, coin) {
-    coin = coin || 'vcl';
+  addWalletPrivateKey(walletPrivKey) {
     this.walletPrivKey = walletPrivKey;
-    this.sharedEncryptingKey = Utils.privateKeyToAESKey(walletPrivKey, coin);
+    this.sharedEncryptingKey = Utils.privateKeyToAESKey(walletPrivKey);
   }
 
   addWalletInfo(walletId, walletName, m, n, copayerName, opts) {
@@ -295,8 +269,7 @@ export class Credentials {
 
   isComplete() {
     if (!this.m || !this.n) return false;
-    if ((this.coin === 'btc' || this.coin === 'bch' || this.coin == 'vcl') && (!this.publicKeyRing || this.publicKeyRing.length != this.n))
-      return false;
+    if (!this.publicKeyRing || this.publicKeyRing.length != this.n) return false;
     return true;
   }
 }

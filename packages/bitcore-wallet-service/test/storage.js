@@ -9,12 +9,11 @@ var { Storage } = require('../ts_build/lib/storage');
 var Model = require('../ts_build/lib/model');
 var config = require('./test-config');
 var helpers = require('./integration/helpers');
-var db, client, storage;
+var db, storage;
 
 function resetDb(cb) {
-  if (!client) return cb();
-  let db1 = client.db(config.mongoDb.dbname);
-  db1.dropDatabase(function(err) {
+  if (!db) return cb();
+  db.dropDatabase(function(err) {
     return cb();
   });
 };
@@ -22,12 +21,11 @@ function resetDb(cb) {
 
 describe('Storage', function() {
   before(function(done) {
-    mongodb.MongoClient.connect(config.mongoDb.uri,{ useUnifiedTopology: true }, function(err, inclient) {
+    mongodb.MongoClient.connect(config.mongoDb.uri, function(err, db1) {
       if (err) throw err;
-      client = inclient;
-      let db1 = client.db(config.mongoDb.dbname);
+      db = db1;
       storage = new Storage({
-        db: db1,
+        db: db1
       });
       done();
     });
@@ -110,10 +108,6 @@ describe('Storage', function() {
         done();
       });
     });
-  });
-
-  describe('Advertisments', function() {
-    // not yet implemented
   });
 
   describe('Transaction proposals', function() {

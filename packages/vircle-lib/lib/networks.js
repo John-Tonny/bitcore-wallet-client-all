@@ -145,6 +145,12 @@ function removeNetwork(network) {
 }
 
 // john
+var network_magic = 0x9a0b9c0d;
+if(typeof(process.env.NETWORK_MAGIC)=='undefined'){
+  network_magic = 0x9a0b9c0d;
+}else{
+  network_magic = parseInt(process.env.NETWORK_MAGIC);
+}
 addNetwork({
   name: 'livenet',
   alias: 'mainnet',
@@ -162,11 +168,9 @@ addNetwork({
   Yprivkey: 0x0295b005,
   Zpubkey: 0x02aa7ed3,
   Zprivkey: 0x02aa7a99,
-  networkMagic: 0x9a0b9c0d,
-  port: 9902,
-  dnsSeeds: [
-    "52.83.40.78"
-  ]
+  networkMagic: network_magic,
+  port: process.env.P2P_PORT || 9900,
+  dnsSeeds: []
 });
 
 /**
@@ -178,24 +182,19 @@ var livenet = get('livenet');
 addNetwork({
   name: 'testnet',
   alias: 'test',
-  pubkeyhash: 0x41,
+  pubkeyhash: 0x6f,
   privatekey: 0xef,
   scripthash: 0xc4,
-  bech32prefix: 'tvcl',
+  bech32prefix: 'tb',
   xpubkey: 0x043587cf,
   xprivkey: 0x04358394,
-  ypubkey: 0x049d7cb2,
-  yprivkey: 0x049d7878,
-  zpubkey: 0x04b24746,
-  zprivkey: 0x04b2430c,
-  Ypubkey: 0x0295b43f,
-  Yprivkey: 0x0295b005,
-  Zpubkey: 0x02aa7ed3,
-  Zprivkey: 0x02aa7a99,
-  networkMagic: 0x1a2b3c4d,
-  port: 9903,
+  networkMagic: 0x0b110907,
+  port: 18333,
   dnsSeeds: [
-    "68.79.38.126"
+    'testnet-seed.bitcoin.petertodd.org',
+    'testnet-seed.bluematt.me',
+    'testnet-seed.alexykot.me',
+    'testnet-seed.bitcoin.schildbach.de'
   ]
 });
 

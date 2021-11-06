@@ -1,12 +1,14 @@
 import { Transactions } from 'crypto-wallet-core';
 import _ from 'lodash';
 import { ChainService } from '../chain/index';
-import logger from '../logger';
 import { TxProposalLegacy } from './txproposal_legacy';
 import { TxProposalAction } from './txproposalaction';
 
 const $ = require('preconditions').singleton();
 const Uuid = require('uuid');
+const log = require('npmlog');
+log.debug = log.verbose;
+log.disableColor();
 
 const Common = require('../common');
 const Constants = Common.Constants,
@@ -64,10 +66,13 @@ export interface ITxProposal {
   gasLimit?: number; // Backward compatibility for BWC <= 8.9.0
   data?: string; // Backward compatibility for BWC <= 8.9.0
   tokenAddress?: string;
-  multisigContractAddress?: string;
   destinationTag?: string;
   invoiceID?: string;
   lockUntilBlockHeight?: number;
+  atomicswap?: any;
+  atomicswapAddr?: string;
+  atomicswapSecretHash?;
+  string;
 }
 
 export class TxProposal {
@@ -122,11 +127,12 @@ export class TxProposal {
   gasLimit?: number; // Backward compatibility for BWC <= 8.9.0
   data?: string; // Backward compatibility for BWC <= 8.9.0
   tokenAddress?: string;
-  multisigContractAddress?: string;
-  multisigTxId?: string;
   destinationTag?: string;
   invoiceID?: string;
   lockUntilBlockHeight?: number;
+  atomicswap?: any; // john 20210409
+  atomicswapAddr?: string;
+  atomicswapSecretHash?: string;
 
   static create(opts) {
     opts = opts || {};
@@ -195,11 +201,15 @@ export class TxProposal {
     x.gasLimit = opts.gasLimit; // Backward compatibility for BWC <= 8.9.0
     x.data = opts.data; // Backward compatibility for BWC <= 8.9.0
     x.tokenAddress = opts.tokenAddress;
-    x.multisigContractAddress = opts.multisigContractAddress;
 
     // XRP
     x.destinationTag = opts.destinationTag;
     x.invoiceID = opts.invoiceID;
+
+    // john 20210409
+    x.atomicswap = opts.atomicswap;
+    x.atomicswapAddr = opts.atomicswapAddr;
+    x.atomicswapSecretHash = opts.atomicswapSecretHash;
 
     return x;
   }
@@ -257,8 +267,6 @@ export class TxProposal {
     x.gasLimit = obj.gasLimit; // Backward compatibility for BWC <= 8.9.0
     x.data = obj.data; // Backward compatibility for BWC <= 8.9.0
     x.tokenAddress = obj.tokenAddress;
-    x.multisigContractAddress = obj.multisigContractAddress;
-    x.multisigTxId = obj.multisigTxId;
 
     // XRP
     x.destinationTag = obj.destinationTag;
@@ -267,6 +275,11 @@ export class TxProposal {
     if (x.status == 'broadcasted') {
       x.raw = obj.raw;
     }
+
+    // john 20210409
+    x.atomicswap = obj.atomicswap;
+    x.atomicswapAddr = obj.atomicswapAddr;
+    x.atomicswapSecretHash = obj.atomicswapSecretHash;
 
     return x;
   }
@@ -307,6 +320,9 @@ export class TxProposal {
 
   getRawTx() {
     const t = ChainService.getBitcoreTx(this);
+    if (this.atomicswap && this.atomicswap.isAtomicSwap && this.atomicswap.redeem != undefined) {
+      return t.uncheckedAtomicSwapSerialize();
+    }
     return t.uncheckedSerialize();
   }
 
@@ -314,6 +330,12 @@ export class TxProposal {
   getRawTx1() {
     const t = ChainService.getBitcoreTx(this);
     return t.uncheckedSerialize1();
+  }
+
+  // john
+  getRawAtomicswapTx() {
+    const t = ChainService.getBitcoreTx(this);
+    return t.uncheckedAtomicSwapSerialize();
   }
 
   /**
@@ -388,13 +410,17 @@ export class TxProposal {
       this.addAction(copayerId, 'accept', null, signatures, xpub);
 
       if (this.status == 'accepted') {
-        this.raw = tx.uncheckedSerialize();
+        if (this.atomicswap && this.atomicswap.isAtomicSwap && this.atomicswap.redeem != undefined) {
+          this.raw = tx.uncheckedAtomicSwapSerialize();
+        } else {
+          this.raw = tx.uncheckedSerialize();
+        }
         this.txid = tx.id;
       }
 
       return true;
     } catch (e) {
-      logger.debug(e);
+      log.debug(e);
       return false;
     }
   }
@@ -429,5 +455,11 @@ export class TxProposal {
     $.checkState(this.txid);
     this.status = 'broadcasted';
     this.broadcastedOn = Math.floor(Date.now() / 1000);
+  }
+
+  // john 20210409
+  setAtomicswaped() {
+    $.checkState(this.txid);
+    this.atomicswapAddr = null;
   }
 }

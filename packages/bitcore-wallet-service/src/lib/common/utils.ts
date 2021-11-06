@@ -2,13 +2,11 @@ import * as CWC from 'crypto-wallet-core';
 import _ from 'lodash';
 
 const $ = require('preconditions').singleton();
-const bitcore = require('bitcore-lib');
+const bitcore = require('vircle-lib');
 const crypto = bitcore.crypto;
 const secp256k1 = require('secp256k1');
-const Bitcore = require('bitcore-lib');
+const Bitcore = require('vircle-lib');
 const Bitcore_ = {
-  btc: Bitcore,
-  bch: require('bitcore-lib-cash'),
   vcl: require('vircle-lib')
 };
 
@@ -135,19 +133,10 @@ export class Utils {
 
   static formatAmountInBtc(amount) {
     return (
-      Utils.formatAmount(amount, 'btc', {
+      Utils.formatAmount(amount, 'vcl', {
         minDecimals: 8,
         maxDecimals: 8
-      }) + 'btc'
-    );
-  }
-
-  static formatAmountInVcl(amount) {
-    return (
-        Utils.formatAmount(amount, 'vcl', {
-          minDecimals: 8,
-          maxDecimals: 8
-        }) + 'vcl'
+      }) + 'vcl'
     );
   }
 

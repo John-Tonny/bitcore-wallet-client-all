@@ -81,8 +81,9 @@ PublicKeyHashInput.prototype.getSignatures = function(transaction, privateKey, i
   } else {
     script = this.output.script;
   }
-
-  if (script && BufferUtil.equals(hashData, script.getPublicKeyHash())) {
+  
+  // john 20210409
+  if (script && ((transaction.atomicswap && transaction.atomicswap.initiate==undefined)|| BufferUtil.equals(hashData, script.getPublicKeyHash()))) {
     var signature;
     if (script.isWitnessPublicKeyHashOut()) {
       var satoshisBuffer = this.getSatoshisBuffer();

@@ -5,6 +5,9 @@ import { ChainService } from './chain/index';
 const $ = require('preconditions').singleton();
 const Common = require('./common');
 const Defaults = Common.Defaults;
+let log = require('npmlog');
+log.debug = log.verbose;
+
 const PROVIDERS = {
   v8: {
     btc: {

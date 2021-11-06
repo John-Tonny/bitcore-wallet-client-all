@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import logger from '../lib/logger';
-
 var config = require('../config');
 const MasternodeService = require('../lib/masternodeservice');
+// const log = require('npmlog');
+// log.debug = log.verbose;
 
 const masternodeService = new MasternodeService();
 masternodeService.init(config, err => {
@@ -11,6 +11,6 @@ masternodeService.init(config, err => {
   masternodeService.startCron(config, err => {
     if (err) throw err;
 
-    logger.info('masternode service started');
+    console.log('masternode service started');
   });
 });

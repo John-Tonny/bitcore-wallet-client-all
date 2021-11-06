@@ -2,18 +2,9 @@ import * as _ from 'lodash';
 import { Constants, Utils } from './common';
 var $ = require('preconditions').singleton();
 
-import * as CWC from 'crypto-wallet-core';
-import {CLIENT_RENEG_LIMIT} from "tls";
+import { VircleLib } from 'crypto-wallet-core';
 
-var Bitcore_ = {
-  btc: CWC.BitcoreLib,
-  bch: CWC.BitcoreLibCash,
-  eth: CWC.BitcoreLib,
-  xrp: CWC.BitcoreLib,
-  vcl: CWC.VircleLib
-};
-
-var BCHAddress = CWC.BitcoreLibCash.Address;
+var Bitcore = VircleLib;
 
 var log = require('./log');
 
@@ -53,7 +44,7 @@ export class Verifier {
    */
   static checkCopayers(credentials, copayers) {
     $.checkState(credentials.walletPrivKey);
-    var walletPubKey = Bitcore_[credentials.coin].PrivateKey.fromString(credentials.walletPrivKey)
+    var walletPubKey = Bitcore.PrivateKey.fromString(credentials.walletPrivKey)
       .toPublicKey()
       .toString();
 
@@ -84,7 +75,7 @@ export class Verifier {
         error = true;
       } else {
         var hash = Utils.getCopayerHash(copayer.encryptedName || copayer.name, copayer.xPubKey, copayer.requestPubKey);
-        if (!Utils.verifyMessage(hash, copayer.signature, walletPubKey, credentials.coin)) {
+        if (!Utils.verifyMessage(hash, copayer.signature, walletPubKey)) {
           log.error('Invalid signatures in server response');
           error = true;
         }
@@ -110,9 +101,14 @@ export class Verifier {
     for (var i = 0; i < txp.outputs.length; i++) {
       var o1 = txp.outputs[i];
       var o2 = args.outputs[i];
-      if (!strEqual(o1.toAddress, o2.toAddress)) return false;
-      if (!strEqual(o1.script, o2.script)) return false;
-      if (o1.amount != o2.amount) return false;
+      // john 20210409
+      if (!txp.atomicswap || txp.atomicswap.isAtomicSwap) {
+        if (!strEqual(o1.toAddress, o2.toAddress)) return false;
+        if (!strEqual(o1.script, o2.script)) return false;
+      }
+      if (!args.sendMax && txp.atomicswap && !txp.atomicswap.isAtomicSwap) {
+        if (o1.amount != o2.amount) return false;
+      }
       var decryptedMessage = null;
       try {
         decryptedMessage = Utils.decryptMessage(o2.message, encryptingKey);
@@ -156,7 +152,7 @@ export class Verifier {
     // If the txp using a selfsigned pub key?
     if (txp.proposalSignaturePubKey) {
       // Verify it...
-      if (!Utils.verifyRequestPubKey(txp.proposalSignaturePubKey, txp.proposalSignaturePubKeySig, creatorKeys.xPubKey, txp.coin))
+      if (!Utils.verifyRequestPubKey(txp.proposalSignaturePubKey, txp.proposalSignaturePubKeySig, creatorKeys.xPubKey))
         return false;
 
       creatorSigningPubKey = txp.proposalSignaturePubKey;
@@ -168,21 +164,31 @@ export class Verifier {
     var hash;
     if (parseInt(txp.version) >= 3) {
       var t = Utils.buildTx(txp);
-      // john
-      if (txp.coin == 'vcl') {
-        hash = t.uncheckedSerialize1();
-      } else {
-        hash = t.uncheckedSerialize();
+      if (txp.atomicswap && txp.atomicswap.isAtomicSwap && txp.atomicswap.redeem != undefined) {
+        t.inputs[0].output.setScript(txp.atomicswap.contract);
+        if (!txp.atomicswap.redeem) {
+          t.lockUntilDate(txp.atomicswap.lockTime);
+        } else {
+          t.nLockTime = txp.atomicswap.lockTime;
+        }
       }
+      // john
+      hash = t.uncheckedSerialize1();
     } else {
       throw new Error('Transaction proposal not supported');
     }
 
     log.debug('Regenerating & verifying tx proposal hash -> Hash: ', hash, ' Signature: ', txp.proposalSignature);
-    if (!Utils.verifyMessage(hash, txp.proposalSignature, creatorSigningPubKey, txp.coin)) return false;
+    if (!Utils.verifyMessage(hash, txp.proposalSignature, creatorSigningPubKey)) return false;
 
-    if (Constants.UTXO_COINS.includes(txp.coin) && !this.checkAddress(credentials, txp.changeAddress)) return false;
-
+    // john 20210409
+    if (Constants.UTXO_COINS.includes(txp.coin)) {
+      if (txp.changeAddress != undefined) {
+        if ((!txp.atomicswap || txp.atomicswap.isAtomicSwap) && !this.checkAddress(credentials, txp.changeAddress)) {
+          return false;
+        }
+      }
+    }
     return true;
   }
 
@@ -205,11 +211,6 @@ export class Verifier {
     if ((txp.coin == 'btc' || txp.coin == 'vcl') && toAddress != payproOpts.instructions[0].toAddress) return false;
 
     // Workaround for cashaddr/legacy address problems...
-    if (
-      txp.coin == 'bch' &&
-      new BCHAddress(toAddress).toString() != new BCHAddress(payproOpts.instructions[0].toAddress).toString()
-    )
-      return false;
 
     // this generates problems...
     //  if (feeRate && payproOpts.requiredFeeRate &&

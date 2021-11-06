@@ -1,6 +1,6 @@
 'use strict';
 
-import { BitcoreLib, BitcoreLibCash, Deriver, Transactions, VircleLib } from 'crypto-wallet-core';
+import { Deriver, Transactions, VircleLib } from 'crypto-wallet-core';
 
 import * as _ from 'lodash';
 import { Constants } from './constants';
@@ -11,19 +11,13 @@ const sjcl = require('sjcl');
 const Stringify = require('json-stable-stringify');
 
 // john
-const Bitcore = BitcoreLib;
+const Bitcore = VircleLib;
 const Bitcore_ = {
-  btc: Bitcore,
-  bch: BitcoreLibCash,
-  eth: Bitcore,
-  xrp: Bitcore,
-  vcl: VircleLib  
+  vcl: VircleLib
 };
-/*
 const PrivateKey = Bitcore.PrivateKey;
 const PublicKey = Bitcore.PublicKey;
 const crypto = Bitcore.crypto;
-*/
 
 let SJCL = {};
 
@@ -95,42 +89,42 @@ export class Utils {
   static hashMessage(text) {
     $.checkArgument(text);
     var buf = Buffer.from(text);
-    var ret = Bitcore.crypto.Hash.sha256sha256(buf);
+    var ret = crypto.Hash.sha256sha256(buf);
     ret = new Bitcore.encoding.BufferReader(ret).readReverse();
     return ret;
   }
 
-  static signMessage(message, privKey, coin) {
+  static signMessage(message, privKey) {
     $.checkArgument(message);
-    coin = coin || 'vcl';
-    var priv = new Bitcore_[coin].PrivateKey(privKey);
+    var priv = new PrivateKey(privKey);
     const flattenedMessage = _.isArray(message) ? _.join(message) : message;
     var hash = this.hashMessage(flattenedMessage);
-    return Bitcore_[coin].crypto.ECDSA.sign(hash, priv, 'little').toString();
+
+    return crypto.ECDSA.sign(hash, priv, 'little').toString();
   }
 
-  static verifyMessage(message: Array<string> | string, signature, pubKey, coin) {
+  static verifyMessage(message: Array<string> | string, signature, pubKey) {
     $.checkArgument(message);
     $.checkArgument(pubKey);
 
     if (!signature) return false;
 
-    var pub = new Bitcore_[coin].PublicKey(pubKey);
+    var pub = new PublicKey(pubKey);
     const flattenedMessage = _.isArray(message) ? _.join(message) : message;
     const hash = this.hashMessage(flattenedMessage);
     try {
-      var sig = new Bitcore_[coin].crypto.Signature.fromString(signature);
-      return Bitcore_[coin].crypto.ECDSA.verify(hash, sig, pub, 'little');
+      var sig = new crypto.Signature.fromString(signature);
+      return crypto.ECDSA.verify(hash, sig, pub, 'little');
     } catch (e) {
       return false;
     }
   }
 
-  static privateKeyToAESKey(privKey, coin) {
+  static privateKeyToAESKey(privKey) {
     $.checkArgument(privKey && _.isString(privKey));
-    $.checkArgument(Bitcore_[coin].PrivateKey.isValid(privKey), 'The private key received is invalid');
-    var pk = Bitcore_[coin].PrivateKey.fromString(privKey);
-    return Bitcore_[coin].crypto.Hash.sha256(pk.toBuffer())
+    $.checkArgument(Bitcore.PrivateKey.isValid(privKey), 'The private key received is invalid');
+    var pk = Bitcore.PrivateKey.fromString(privKey);
+    return Bitcore.crypto.Hash.sha256(pk.toBuffer())
       .slice(0, 16)
       .toString('base64');
   }
@@ -212,22 +206,20 @@ export class Utils {
     // now it is effective for all coins.
 
     const chain = this.getChain(coin).toLowerCase();
-    var str = chain == 'vcl' ? xpub : chain + xpub;
+    var str = chain == 'btc' || chain == 'vcl' ? xpub : chain + xpub;
 
     var hash = sjcl.hash.sha256.hash(str);
     return sjcl.codec.hex.fromBits(hash);
   }
 
-  static signRequestPubKey(requestPubKey, xPrivKey, coin) {
-    coin = coin || 'vcl';
-    var priv = new Bitcore_[coin].HDPrivateKey(xPrivKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).privateKey;
-    return this.signMessage(requestPubKey, priv, coin);
+  static signRequestPubKey(requestPubKey, xPrivKey) {
+    var priv = new Bitcore.HDPrivateKey(xPrivKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).privateKey;
+    return this.signMessage(requestPubKey, priv);
   }
 
-  static verifyRequestPubKey(requestPubKey, signature, xPubKey, coin) {
-    coin = coin || 'vcl';
-    var pub = new Bitcore_[coin].HDPublicKey(xPubKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).publicKey;
-    return this.verifyMessage(requestPubKey, signature, pub.toString(), coin);
+  static verifyRequestPubKey(requestPubKey, signature, xPubKey) {
+    var pub = new Bitcore.HDPublicKey(xPubKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).publicKey;
+    return this.verifyMessage(requestPubKey, signature, pub.toString());
   }
 
   static formatAmount(satoshis, unit, opts?) {
@@ -283,6 +275,8 @@ export class Utils {
 
       var t = new bitcore.Transaction();
 
+      t.setAtomicSwap(txp.atomicswap);
+
       if (txp.version >= 4) {
         t.setVersion(2);
       } else {
@@ -323,7 +317,9 @@ export class Utils {
       }
 
       t.fee(txp.fee);
-      t.change(txp.changeAddress.address);
+      if (txp.changeAddress) {
+        t.change(txp.changeAddress.address);
+      }
 
       // Shuffle outputs for improved privacy
       if (t.outputs.length > 1) {
@@ -359,7 +355,7 @@ export class Utils {
 
       return t;
     } else {
-      const { data, destinationTag, outputs, payProUrl, tokenAddress, multisigContractAddress } = txp;
+      const { data, destinationTag, outputs, payProUrl, tokenAddress } = txp;
       const recipients = outputs.map(output => {
         return {
           amount: output.amount,
@@ -374,8 +370,7 @@ export class Utils {
       }
       const unsignedTxs = [];
       const isERC20 = tokenAddress && !payProUrl;
-      const isETHMULTISIG = multisigContractAddress && !payProUrl;
-      const chain = isETHMULTISIG ? 'ETHMULTISIG' : isERC20 ? 'ERC20' : this.getChain(coin);
+      const chain = isERC20 ? 'ERC20' : this.getChain(coin);
       for (let index = 0; index < recipients.length; index++) {
         const rawTx = Transactions.create({
           ...txp,
@@ -391,9 +386,9 @@ export class Utils {
     }
   }
 
-  static isPrivateKey(privKey, coin) {
+  static isPrivateKey(privKey) {
     try {
-      var privkey = new Bitcore_[coin].PrivateKey(privKey);
+      var privkey = new PrivateKey(privKey);
       return true;
     } catch (e) {
       return false;

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import logger from '../lib/logger';
+
 var config = require('../config');
 const EmailService = require('../lib/emailservice');
+// const log = require('npmlog');
+// log.debug = log.verbose;
 
 const emailService = new EmailService();
 emailService.start(config, err => {
   if (err) throw err;
 
-  logger.info('Email service started');
+  console.log('Email service started');
 });

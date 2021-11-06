@@ -1,10 +1,6 @@
 import { ITxProposal, IWallet, TxProposal } from '../model';
 import { WalletService } from '../server';
-import { BchChain } from './bch';
-import { BtcChain } from './btc';
-import { EthChain } from './eth';
 import { VclChain } from './vcl';
-import { XrpChain } from './xrp';
 
 const Common = require('../common');
 const Constants = Common.Constants;
@@ -23,7 +19,26 @@ export interface IChain {
   getWalletSendMaxInfo(
     server: WalletService,
     wallet: IWallet,
-    opts: { excludeUnconfirmedUtxos: string; returnInputs: string; from: string; feePerKb: number } & any,
+    opts: {
+      excludeUnconfirmedUtxos: string;
+      returnInputs: string;
+      from: string;
+      feePerKb: number;
+      excludeMasternode: string;
+    } & any,
+    cb
+  );
+  // john 20210409
+  getRedeemSendMaxInfo(
+    server: WalletService,
+    wallet: IWallet,
+    opts: {
+      excludeUnconfirmedUtxos: string;
+      returnInputs: string;
+      from: string;
+      feePerKb: number;
+      atomicswap: any;
+    } & any,
     cb
   );
   getDustAmountValue();
@@ -58,11 +73,7 @@ export interface IChain {
 }
 
 const chain: { [chain: string]: IChain } = {
-  BTC: new BtcChain(),
-  BCH: new BchChain(),
-  ETH: new EthChain(),
-  VCL: new VclChain(),
-  XRP: new XrpChain()
+  VCL: new VclChain()
 };
 
 class ChainProxy {
@@ -85,6 +96,11 @@ class ChainProxy {
 
   getWalletSendMaxInfo(server, wallet, opts, cb) {
     return this.get(wallet.coin).getWalletSendMaxInfo(server, wallet, opts, cb);
+  }
+
+  // john 20210409
+  getRedeemSendMaxInfo(server, wallet, opts, cb) {
+    return this.get(wallet.coin).getRedeemSendMaxInfo(server, wallet, opts, cb);
   }
 
   getDustAmountValue(coin) {

@@ -26,6 +26,9 @@ var Output = require('./output');
 var Script = require('../script');
 var PrivateKey = require('../privatekey');
 var BN = require('../crypto/bn');
+var RedeemContract = require('../atomicswap/redeemcontract');
+var RefundContract = require('../atomicswap/refundcontract');
+var AuditContract = require('../atomicswap/auditcontract');
 
 /**
  * Represents a transaction, a set of inputs and outputs to change ownership of tokens
@@ -41,6 +44,7 @@ function Transaction(serialized, opts) {
   this.outputs = [];
   this._inputAmount = undefined;
   this._outputAmount = undefined;
+  this.atomicswap = undefined;
 
   if (serialized) {
     if (serialized instanceof Transaction) {
@@ -179,6 +183,11 @@ Transaction.prototype.uncheckedSerialize1 = Transaction.prototype.toString = fun
   return this.toBuffer1(inputNumber).toString('hex');
 };
 
+// john 20210409
+Transaction.prototype.uncheckedAtomicSwapSerialize = Transaction.prototype.toString = function() {
+  return this.toAtomicSwapBuffer().toString('hex');
+};
+
 /**
  * Retrieve a hexa string that can be used with bitcoind's CLI interface
  * (decoderawtransaction, sendrawtransaction)
@@ -297,6 +306,11 @@ Transaction.prototype.inspect = function() {
   return '<Transaction: ' + this.uncheckedSerialize() + '>';
 };
 
+Transaction.prototype.toAtomicSwapBuffer = function(noWitness) {
+  var writer = new BufferWriter();
+  return this.toAtomicSwapBufferWriter(writer, noWitness).toBuffer();
+};
+
 // john
 Transaction.prototype.toBuffer1 = function(inputNumber) {
   var writer = new BufferWriter();
@@ -332,18 +346,15 @@ Transaction.prototype.hasWitnesses = function() {
 
 Transaction.prototype.toBufferWriter = function(writer, noWitness) {
   // john
-  if (this.version == 0x01) {
-    writer.writeInt32LE(0x02);
-  } else {
-    writer.writeInt32LE(this.version);
-  }
+  writer.writeInt32LE(0x02);
+  // writer.writeInt32LE(this.version);
 
   var hasWitnesses = this.hasWitnesses();
 
   if (hasWitnesses && !noWitness) {
     writer.write(Buffer.from('0001', 'hex'));
   }
-
+  
   writer.writeVarintNum(this.inputs.length);
 
   _.each(this.inputs, function(input) {
@@ -373,11 +384,8 @@ Transaction.prototype.toBufferWriter = function(writer, noWitness) {
 // john
 Transaction.prototype.toBufferWriter1 = function(writer, inputNumber) {
   // john
-  if (this.version == 0x01) {
-    writer.writeInt32LE(0x02);
-  } else {
-    writer.writeInt32LE(this.version);
-  }
+  writer.writeInt32LE(0x02);
+  // writer.writeInt32LE(this.version);
 
   var noWitness = this.isNotWitnesses();
 
@@ -448,6 +456,46 @@ Transaction.prototype.toBufferWriter1 = function(writer, inputNumber) {
   return writer;
 };
 
+// john 20210409
+Transaction.prototype.toAtomicSwapBufferWriter = function(writer, noWitness) {
+  // john
+  writer.writeInt32LE(0x02);
+  // writer.writeInt32LE(this.version);
+
+  var hasWitnesses = this.hasWitnesses();
+
+  if (hasWitnesses && !noWitness) {
+    writer.write(Buffer.from('0001', 'hex'));
+  }
+
+  writer.writeVarintNum(this.inputs.length);
+
+  if (this.atomicswap && this.atomicswap.isAtomicSwap) {
+    this.createAtomicSwap();
+  }
+  _.each(this.inputs, function(input) {
+    input.toBufferWriter(writer);
+  });
+
+  writer.writeVarintNum(this.outputs.length);
+  _.each(this.outputs, function(output) {
+    output.toBufferWriter(writer);
+  });
+
+  if (hasWitnesses && !noWitness) {
+    _.each(this.inputs, function(input) {
+      var witnesses = input.getWitnesses();
+      writer.writeVarintNum(witnesses.length);
+      for (var j = 0; j < witnesses.length; j++) {
+        writer.writeVarintNum(witnesses[j].length);
+        writer.write(witnesses[j]);
+      }
+    });
+  }
+
+  writer.writeUInt32LE(this.nLockTime);
+  return writer;
+};
 
 Transaction.prototype.fromBuffer = function(buffer) {
   var reader = new BufferReader(buffer);
@@ -1501,6 +1549,26 @@ Transaction.prototype.setVersion = function(version) {
   return this;
 };
 
+// john 20210409
+Transaction.prototype.setAtomicSwap = function(atomicswap) {
+  this.atomicswap = atomicswap;
+  return this;
+};
+
+Transaction.prototype.createAtomicSwap = function(){
+  let cnt = AuditContract(this.atomicswap.contract);
+  if (cnt.isAtomicSwap) {
+    let signAndPubkey = this.inputs[0]._scriptBuffer.toString('hex');
+    let contract ;
+    if(this.atomicswap.redeem && this.atomicswap.secret) {
+      contract = RedeemContract(this.atomicswap.contract, signAndPubkey, this.atomicswap.secret);
+    }else{
+      contract = RefundContract(this.atomicswap.contract, signAndPubkey);
+    }
+    this.inputs[0].setScript(contract.hex);
+  }
+  return this;
+}
 
 
 module.exports = Transaction;

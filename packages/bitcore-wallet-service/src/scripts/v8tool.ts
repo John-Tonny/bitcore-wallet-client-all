@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const request = require('request');
-const Bitcore = require('bitcore-lib');
+const Bitcore = require('vircle-lib');
 import { Client } from '../lib//blockchainexplorers/v8/client';
 
 const coin = process.argv[2];
@@ -29,11 +29,7 @@ tmp.compressed = false;
 const pubKey = Bitcore.PrivateKey(tmp).toPublicKey();
 
 const BASE = {
-  BTC: `https://api.bitcore.io/api/${coin}/${network}`,
-  BCH: `https://api.bitcore.io/api/${coin}/${network}`,
-  ETH: `https://api-eth.bitcore.io/api/${coin}/${network}`,
-  XRP: `https://api-xrp.bitcore.io/api/${coin}/${network}`,
-  VCL: `https://bws.vircle.xyz:1443/api/${coin}/${network}`
+  VCL: `https://bws.vircle.xyz:2443/api/${coin}/${network}`
 };
 let baseUrl = BASE[coin];
 console.log('[v8tool.ts.37:baseUrl:]', baseUrl); // TODO

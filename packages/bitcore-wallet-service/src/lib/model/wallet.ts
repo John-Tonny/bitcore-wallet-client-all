@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import { ChainService } from '../chain/index';
-import logger from '../logger';
 import { Address } from './address';
 import { AddressManager } from './addressmanager';
 import { Copayer } from './copayer';
 
+const log = require('npmlog');
 const $ = require('preconditions').singleton();
 const Uuid = require('uuid');
 const config = require('../../config');
@@ -13,11 +13,7 @@ const Constants = Common.Constants,
   Defaults = Common.Defaults,
   Utils = Common.Utils;
 const Bitcore = {
-  btc: require('bitcore-lib'),
-  bch: require('bitcore-lib-cash'),
-  eth: require('bitcore-lib'),
-  vcl: require('vircle-lib'),
-  xrp: require('bitcore-lib')
+  vcl: require('vircle-lib')
 };
 
 export interface IWallet {
@@ -256,7 +252,7 @@ export class Wallet {
     $.checkState(this.isComplete());
 
     const path = this.addressManager.getNewAddressPath(isChange, step);
-    logger.debug('Deriving addr:' + path);
+    log.verbose('Deriving addr:' + path);
     const address = Address.derive(
       this.id,
       this.addressType,

@@ -6,7 +6,8 @@ import { Storage } from './storage';
 const $ = require('preconditions').singleton();
 const Common = require('./common');
 const Defaults = Common.Defaults;
-import logger from './logger';
+let log = require('npmlog');
+log.debug = log.verbose;
 
 const fiatCodes = {
   USD: 1,
@@ -46,7 +47,7 @@ export class FiatRateService {
       ],
       err => {
         if (err) {
-          logger.error(err);
+          log.error(err);
         }
         return cb(err);
       }
@@ -70,7 +71,7 @@ export class FiatRateService {
 
   _fetch(cb?) {
     cb = cb || function() {};
-    const coins = ['btc', 'bch', 'eth', 'vcl', 'xrp'];
+    const coins = ['vcl'];
     const provider = this.providers[0];
 
     //    async.each(this.providers, (provider, next) => {
@@ -79,12 +80,12 @@ export class FiatRateService {
       (coin, next2) => {
         this._retrieve(provider, coin, (err, res) => {
           if (err) {
-            logger.warn('Error retrieving data for ' + provider.name + coin, err);
+            log.warn('Error retrieving data for ' + provider.name + coin, err);
             return next2();
           }
           this.storage.storeFiatRate(coin, res, err => {
             if (err) {
-              logger.warn('Error storing data for ' + provider.name, err);
+              log.warn('Error storing data for ' + provider.name, err);
             }
             return next2();
           });
@@ -96,7 +97,7 @@ export class FiatRateService {
   }
 
   _retrieve(provider, coin, cb) {
-    logger.debug(`Fetching data for ${provider.name} / ${coin} `);
+    log.debug(`Fetching data for ${provider.name} / ${coin} `);
     this.request.get(
       {
         url: provider.url + coin.toUpperCase(),
@@ -107,7 +108,7 @@ export class FiatRateService {
           return cb(err);
         }
 
-        logger.debug(`Data for ${provider.name} /  ${coin} fetched successfully`);
+        log.debug(`Data for ${provider.name} /  ${coin} fetched successfully`);
 
         if (!provider.parseFn) {
           return cb(new Error('No parse function for provider ' + provider.name));
@@ -163,7 +164,7 @@ export class FiatRateService {
     // Oldest date in timestamp range in epoch number ex. 24 hours ago
     const now = Date.now() - Defaults.FIAT_RATE_FETCH_INTERVAL * 60 * 1000;
     const ts = _.isNumber(opts.ts) ? opts.ts : now;
-    const coins = ['btc', 'bch', 'eth', 'vcl', 'xrp'];
+    const coins = ['vcl'];
 
     async.map(
       coins,
@@ -173,10 +174,7 @@ export class FiatRateService {
           if (!rates) return cb();
           for (const rate of rates) {
             rate.rate = rate.value;
-            delete rate['_id'];
-            delete rate['code'];
-            delete rate['value'];
-            delete rate['coin'];
+            rate.fetchedOn = rate.ts;
           }
           historicalRates[coin] = rates;
           return cb(null, historicalRates);

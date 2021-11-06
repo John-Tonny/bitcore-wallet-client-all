@@ -1,7 +1,9 @@
 import _ from 'lodash';
-import logger from '../logger';
 
 const $ = require('preconditions').singleton();
+const log = require('npmlog');
+log.debug = log.verbose;
+log.disableColor();
 const Common = require('../common');
 const Constants = Common.Constants;
 const Defaults = Common.Defaults;
@@ -9,7 +11,7 @@ import { TxProposalAction } from './txproposalaction';
 
 function throwUnsupportedError() {
   const msg = 'Unsupported operation on this transaction proposal';
-  logger.warn('DEPRECATED: ' + msg);
+  log.warn('DEPRECATED: ' + msg);
   throw new Error(msg);
 }
 

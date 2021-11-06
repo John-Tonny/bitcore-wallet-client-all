@@ -1,11 +1,12 @@
 #!/bin/bash
 
-MODULE_PATH=/home/ubuntu/bitcore/packages
-NODE_PATH=/home/ubuntu/.nvm/versions/node/v10.5.0/bin
+USER_PATH=/mnt/ethereum
+MODULE_PATH=$USER_PATH/bitcore/packages
+NODE_PATH=$USER_PATH/.nvm/versions/node/v10.5.0/bin
+LOG_PATH=$USER_PATH/bitcore/logs
 
 cd $MODULE_PATH/bitcore-wallet-service
 
-mkdir -p logs
 mkdir -p pids
 
 # run_program (nodefile, pidfile, logfile)
@@ -35,5 +36,5 @@ run_program ()
 }
 
 ./stop_bws.sh pids/messagebroker.pid
-run_program ./ts_build/messagebroker/messagebroker.js pids/messagebroker.pid logs/messagebroker.log
+run_program ./ts_build/messagebroker/messagebroker.js pids/messagebroker.pid $LOG_PATH/messagebroker.log
 

@@ -2,9 +2,8 @@ import * as requestStream from 'request';
 import * as request from 'request-promise-native';
 import * as secp256k1 from 'secp256k1';
 import { URL } from 'url';
-import logger from '../../logger';
 
-const bitcoreLib = require('bitcore-lib');
+const bitcoreLib = require('vircle-lib');
 
 export class Client {
   authKey: { bn: { toBuffer: (arg) => Buffer } };
@@ -42,21 +41,11 @@ export class Client {
   }
 
   async getBalance(params) {
-    const { payload, pubKey, tokenAddress, multisigContractAddress } = params;
-    let query = '';
-    let apiUrl = `${this.baseUrl}/wallet/${pubKey}/balance`;
-
-    if (tokenAddress) {
-      query = `?tokenAddress=${tokenAddress}`;
-    }
-
-    if (multisigContractAddress) {
-      apiUrl = `${this.baseUrl}/address/${multisigContractAddress}/balance`;
-    }
-
-    const url = apiUrl + query;
+    const { payload, pubKey, tokenAddress } = params;
+    const query = tokenAddress ? `?tokenAddress=${tokenAddress}` : '';
+    const url = `${this.baseUrl}/wallet/${pubKey}/balance${query}`;
+    console.log('[client.js.37:url:]', url); // TODO
     const signature = this.sign({ method: 'GET', url, payload });
-    logger.info(`'getBalance' | ${url} | ${payload} | ${signature}`);
     return request.get(url, {
       headers: { 'x-signature': signature },
       body: payload,
@@ -67,7 +56,7 @@ export class Client {
   async getCheckData(params) {
     const { payload, pubKey } = params;
     const url = `${this.baseUrl}/wallet/${pubKey}/check`;
-    logger.debug('WALLET CHECK');
+    console.log('WALLET CHECK ', url); // TODO
     const signature = this.sign({ method: 'GET', url, payload });
     return request.get(url, {
       headers: { 'x-signature': signature },
@@ -88,6 +77,16 @@ export class Client {
   async getTx(params) {
     const { txid } = params;
     const url = `${this.baseUrl}/tx/${txid}`;
+    console.log('[client.js.59:url:]', url); // TODO
+    return request.get(url, {
+      json: true
+    });
+  }
+
+  async getRawTx(params) {
+    const { txid } = params;
+    const url = `${this.baseUrl}/tx/${txid}/rawhex`;
+    console.log('[client.js.59:url:]', url); // TODO
     return request.get(url, {
       json: true
     });
@@ -101,7 +100,7 @@ export class Client {
       extra = `?includeSpent=${includeSpent}`;
     }
     const url = `${this.baseUrl}/wallet/${pubKey}/utxos${extra}`;
-    logger.debug('GET UTXOS:', url);
+    console.log('GET UTXOS:', url); // TODO
     const signature = this.sign({ method: 'GET', url, payload });
     return request.get(url, {
       headers: { 'x-signature': signature },
@@ -113,43 +112,29 @@ export class Client {
   async getCoinsForTx(params) {
     const { txId } = params;
     const url = `${this.baseUrl}/tx/${txId}/coins`;
-    logger.debug('GET COINS FOR TX:', url);
+    console.log('GET COINS FOR TX:', url);
     return request.get(url, {
       json: true
     });
   }
 
   listTransactions(params) {
-    const {
-      pubKey,
-      startBlock,
-      startDate,
-      endBlock,
-      endDate,
-      includeMempool,
-      tokenAddress,
-      multisigContractAddress
-    } = params;
-    let query = '';
-    let apiUrl = `${this.baseUrl}/wallet/${pubKey}/transactions?`;
+    const { pubKey, startBlock, startDate, endBlock, endDate, includeMempool, tokenAddress } = params;
+    let url = `${this.baseUrl}/wallet/${pubKey}/transactions?`;
     if (startBlock) {
-      query += `startBlock=${startBlock}&`;
+      url += `startBlock=${startBlock}&`;
     }
     if (endBlock) {
-      query += `endBlock=${endBlock}&`;
+      url += `endBlock=${endBlock}&`;
     }
     if (tokenAddress) {
-      query += `tokenAddress=${tokenAddress}&`;
-    }
-    if (multisigContractAddress) {
-      apiUrl = `${this.baseUrl}/ethmultisig/transactions/${multisigContractAddress}?`;
+      url += `tokenAddress=${tokenAddress}&`;
     }
     if (includeMempool) {
-      query += 'includeMempool=true';
+      url += 'includeMempool=true';
     }
-    const url = apiUrl + query;
     const signature = this.sign({ method: 'GET', url });
-    logger.debug('List transactions', url);
+    console.log('[client.js.96:url:]', url); // TODO
     return requestStream.get(url, {
       headers: { 'x-signature': signature },
       json: true
@@ -160,7 +145,7 @@ export class Client {
     const { payload, pubKey } = params;
     const url = `${this.baseUrl}/wallet/${pubKey}`;
 
-    logger.debug('addAddresses:', url, payload);
+    console.log('addAddresses:', url, payload); // TODO
     const signature = this.sign({ method: 'POST', url, payload });
     const h = { 'x-signature': signature };
     return request.post(url, {
@@ -173,7 +158,7 @@ export class Client {
   async broadcast(params) {
     const { payload } = params;
     const url = `${this.baseUrl}/tx/send`;
-    logger.debug('Broadcast', url);
+    console.log('[client.js.113:url:]', url); // TODO
     return request.post(url, { body: payload, json: true });
   }
 
@@ -181,14 +166,14 @@ export class Client {
   async broadcastMasternode(params) {
     const { payload } = params;
     const url = `${this.baseUrl}/masternode/send`;
-    logger.debug('[client.js.113:url:]', url); // TODO
+    console.log('[client.js.113:url:]', url); // TODO
     return request.post(url, { body: payload, json: true });
   }
 
   async getMasternodeStatus(params) {
     const { txId } = params;
     const url = `${this.baseUrl}/masternode/status/${txId}`;
-    logger.debug('GET MASTERNODE STATUS:', url);
+    console.log('GET MASTERNODE STATUS:', url);
     return request.get(url, {
       json: true
     });

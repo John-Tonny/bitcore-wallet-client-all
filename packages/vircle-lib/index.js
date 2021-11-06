@@ -59,6 +59,15 @@ bitcore.Transaction = require('./lib/transaction');
 bitcore.URI = require('./lib/uri');
 bitcore.Unit = require('./lib/unit');
 
+bitcore.atomicswap = {};
+bitcore.atomicswap.CreateContract = require('./lib/atomicswap/createcontract');
+bitcore.atomicswap.AuditContract = require('./lib/atomicswap/auditcontract');
+bitcore.atomicswap.RedeemContract = require('./lib/atomicswap/redeemcontract');
+bitcore.atomicswap.RefundContract = require('./lib/atomicswap/refundcontract');
+bitcore.atomicswap.ExtractContract = require('./lib/atomicswap/extractcontract');
+
+
+
 // dependencies, subject to change
 bitcore.deps = {};
 bitcore.deps.bnjs = require('bn.js');

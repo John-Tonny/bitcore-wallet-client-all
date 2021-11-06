@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="8f2be851-0c02-4371-aff6-8c0fdb9d9a30" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib/masternode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib/masternode.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/expressapp.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/expressapp.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/server.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/server.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/auditcontract.js" beforeDir="false" afterPath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/auditcontract.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/createcontract.js" beforeDir="false" afterPath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/createcontract.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/redeemcontract.js" beforeDir="false" afterPath="$PROJECT_DIR$/../vircle-lib/lib/atomicswap/redeemcontract.js" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/lib/api.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="358">
+              <caret line="1517" column="5" lean-forward="true" selection-start-line="1517" selection-start-column="5" selection-end-line="1517" selection-end-column="5" />
+              <folding>
+                <element signature="e#15#57#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lib/masternode.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2340">
+              <caret line="157" selection-start-line="157" selection-end-line="157" />
+              <folding>
+                <element signature="e#15#57#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lib/credentials.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2580">
+              <caret line="174" column="20" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
+              <folding>
+                <element signature="e#15#62#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lib/key.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="434">
+              <caret line="442" selection-start-line="442" selection-end-line="442" />
+              <folding>
+                <element signature="e#61#89#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lib/common/constants.ts">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="270">
+              <caret line="18" column="33" selection-start-line="18" selection-start-column="33" selection-end-line="18" selection-end-column="33" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>gettx</find>
+      <find>fromSeed</find>
+      <find>fromMn</find>
+      <find>frommn</find>
+      <find>getBaseAddressDerivationPath</find>
+      <find>m.to</find>
+      <find>toHDPrivateKey</find>
+      <find>getBase</find>
+      <find>deriveChild</find>
+      <find>createCredentials</find>
+      <find>derive</find>
+      <find>createCred</find>
+      <find>checkcred</find>
+      <find>checkcre</find>
+      <find>checkcredentials</find>
+      <find>checkcredentials(</find>
+      <find>'vcl', 'livenet', true</find>
+      <find>checkCredentials</find>
+      <find>checkkey</find>
+      <find>n</find>
+      <find>checkKey</find>
+      <find>getrootpath</find>
+      <find>getroot</find>
+      <find>Transaction</find>
+      <find>CLIENT_VERSION</find>
+      <find>get_int32</find>
+      <find>startscan</find>
+      <find>notifications</find>
+      <find>createRed</find>
+      <find>Bitcore_</find>
+    </findStrings>
+    <dirStrings>
+      <dir>$PROJECT_DIR$/src</dir>
+      <dir>$PROJECT_DIR$/src/lib</dir>
+      <dir>$PROJECT_DIR$/src/</dir>
+    </dirStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/test/verifier.test.js" />
+        <option value="$PROJECT_DIR$/ts_build/lib/api.js" />
+        <option value="$PROJECT_DIR$/src/lib/payproV2.ts" />
+        <option value="$PROJECT_DIR$/src/lib/common/utils.ts" />
+        <option value="$PROJECT_DIR$/src/lib/verifier.ts" />
+        <option value="$PROJECT_DIR$/src/lib/paypro.ts" />
+        <option value="$PROJECT_DIR$/src/lib/credentials.ts" />
+        <option value="$PROJECT_DIR$/src/lib/common/constants.ts" />
+        <option value="$PROJECT_DIR$/src/lib/key.ts" />
+        <option value="$PROJECT_DIR$/src/lib/masternode.ts" />
+        <option value="$PROJECT_DIR$/src/lib/api.ts" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="y" value="23" />
+    <option name="width" value="1536" />
+    <option name="height" value="801" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="bitcore-wallet-client" type="b2602c69:ProjectViewProjectNode" />
+              <item name="bitcore-wallet-client" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="bitcore-wallet-client" type="b2602c69:ProjectViewProjectNode" />
+              <item name="bitcore-wallet-client" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="bitcore-wallet-client" type="b2602c69:ProjectViewProjectNode" />
+              <item name="bitcore-wallet-client" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.tslint" value="$PROJECT_DIR$/node_modules/tslint" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="ts.external.directory.path" value="$PROJECT_DIR$/node_modules/typescript/lib" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="compile" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="compile" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.compile" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8f2be851-0c02-4371-aff6-8c0fdb9d9a30" name="Default Changelist" comment="" />
+      <created>1591933514226</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1591933514226</updated>
+      <workItem from="1591933516021" duration="656000" />
+      <workItem from="1593574807497" duration="2177000" />
+      <workItem from="1593591473295" duration="900000" />
+      <workItem from="1593594767553" duration="2246000" />
+      <workItem from="1594019423821" duration="847000" />
+      <workItem from="1594192759128" duration="1061000" />
+      <workItem from="1594198696915" duration="874000" />
+      <workItem from="1594264674274" duration="2417000" />
+      <workItem from="1594287300205" duration="450000" />
+      <workItem from="1594342819918" duration="369000" />
+      <workItem from="1594344932130" duration="89000" />
+      <workItem from="1594349184911" duration="760000" />
+      <workItem from="1594351240214" duration="633000" />
+      <workItem from="1594431286680" duration="1480000" />
+      <workItem from="1594608635463" duration="42000" />
+      <workItem from="1594608770569" duration="392000" />
+      <workItem from="1594954647982" duration="684000" />
+      <workItem from="1594956785035" duration="5527000" />
+      <workItem from="1595040633135" duration="315000" />
+      <workItem from="1595059932928" duration="384000" />
+      <workItem from="1595296290883" duration="1238000" />
+      <workItem from="1595299460054" duration="1105000" />
+      <workItem from="1595308068835" duration="365000" />
+      <workItem from="1595314242524" duration="795000" />
+      <workItem from="1595315816436" duration="657000" />
+      <workItem from="1595402178895" duration="138000" />
+      <workItem from="1595555619648" duration="3691000" />
+      <workItem from="1595560234155" duration="7690000" />
+      <workItem from="1595578298928" duration="3459000" />
+      <workItem from="1595644408789" duration="16265000" />
+      <workItem from="1595819420215" duration="3068000" />
+      <workItem from="1595841280482" duration="673000" />
+      <workItem from="1595898841907" duration="702000" />
+      <workItem from="1595928484966" duration="409000" />
+      <workItem from="1595985808943" duration="2802000" />
+      <workItem from="1596088015686" duration="658000" />
+      <workItem from="1596090833625" duration="56000" />
+      <workItem from="1596870152235" duration="34000" />
+      <workItem from="1596870228892" duration="11000" />
+      <workItem from="1597130493855" duration="623000" />
+      <workItem from="1597221262386" duration="799000" />
+      <workItem from="1597634606667" duration="644000" />
+      <workItem from="1598864605326" duration="96000" />
+      <workItem from="1600911082761" duration="77000" />
+      <workItem from="1601875556111" duration="124000" />
+      <workItem from="1601881170778" duration="33000" />
+      <workItem from="1621823087069" duration="2770000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="71285000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="0" y="23" width="1536" height="801" extended-state="0" />
+    <editor active="true" />
+    <layout>
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.56577086" visible="true" weight="0.34069613" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="npm" order="2" sideWeight="0.43361583" side_tool="true" weight="0.32797858" />
+      <window_info id="Grunt " order="3" side_tool="true" />
+      <window_info id="Favorites" order="4" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.32956153" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Version Control" order="8" />
+      <window_info anchor="bottom" id="Database Changes" order="9" />
+      <window_info anchor="bottom" id="TypeScript" order="10" weight="0.32956153" />
+      <window_info anchor="bottom" id="Terminal" order="11" />
+      <window_info anchor="bottom" id="Event Log" order="12" side_tool="true" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+      <window_info anchor="right" id="Database" order="3" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/test/verifier.test.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="283">
+          <caret line="23" column="10" lean-forward="true" selection-start-line="23" selection-start-column="10" selection-end-line="23" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/util/fetchBitpayKeysAndVerify.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="207" column="59" selection-start-line="207" selection-start-column="56" selection-end-line="207" selection-end-column="59" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/payproV2.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="18" column="5" selection-start-line="18" selection-start-column="2" selection-end-line="18" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/api.test.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="391">
+          <caret line="91" column="33" selection-start-line="91" selection-start-column="21" selection-end-line="91" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tsconfig.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-135" />
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package.json">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/request.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="543">
+          <caret line="251" column="25" selection-start-line="251" selection-start-column="16" selection-end-line="251" selection-end-column="25" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/paypro.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2685">
+          <caret line="179" selection-start-line="179" selection-end-line="179" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/verifier.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2880">
+          <caret line="193" column="43" selection-start-line="193" selection-start-column="43" selection-end-line="193" selection-end-column="43" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/index.ts">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/common/index.ts">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/common/defaults.ts">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/common/utils.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1315">
+          <caret line="309" column="14" selection-start-line="309" selection-start-column="14" selection-end-line="309" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ts_build/lib/api.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="224">
+          <caret line="1638" column="24" selection-start-line="1638" selection-start-column="24" selection-end-line="1638" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/masternode.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2340">
+          <caret line="157" selection-start-line="157" selection-end-line="157" />
+          <folding>
+            <element signature="e#15#57#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/credentials.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2580">
+          <caret line="174" column="20" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
+          <folding>
+            <element signature="e#15#62#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/common/constants.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="18" column="33" selection-start-line="18" selection-start-column="33" selection-end-line="18" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/key.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="434">
+          <caret line="442" selection-start-line="442" selection-end-line="442" />
+          <folding>
+            <element signature="e#61#89#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lib/api.ts">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="358">
+          <caret line="1517" column="5" lean-forward="true" selection-start-line="1517" selection-start-column="5" selection-end-line="1517" selection-end-column="5" />
+          <folding>
+            <element signature="e#15#57#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

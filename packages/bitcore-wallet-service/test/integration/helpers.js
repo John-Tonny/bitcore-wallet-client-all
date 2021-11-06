@@ -45,9 +45,9 @@ helpers.before = function(cb) {
   function getDb(cb) {
     if (useMongoDb) {
       var mongodb = require('mongodb');
-      mongodb.MongoClient.connect(config.mongoDb.uri, { useUnifiedTopology: true }, function(err, client) {
+      mongodb.MongoClient.connect(config.mongoDb.uri, function(err, db) {
         if (err) throw err;
-        return cb(client.db(config.mongoDb.dbname));
+        return cb(db);
       });
     } else {
       throw "tingodb not longer supported";
@@ -114,7 +114,7 @@ helpers.beforeEach = function(cb) {
 
 
   async.each(_.values(collections), (x, icb)=> {
-    storage.db.collection(x).deleteMany({}, icb);
+    storage.db.collection(x).remove({}, icb);
   }, (err) => {
     should.not.exist(err);
     var opts = {
@@ -252,7 +252,7 @@ helpers.createAndJoinWallet = function(m, n, opts, cb) {
     walletOpts.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
   server.createWallet(walletOpts, function(err, walletId) {
-    if (err) throw err;
+    if (err) return cb(err);
 
     async.eachSeries(_.range(n), function(i, cb) {
       var copayerData = TestData.copayers[i + offset];
@@ -280,7 +280,8 @@ helpers.createAndJoinWallet = function(m, n, opts, cb) {
         copayerOpts.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
       server.joinWallet(copayerOpts, function(err, result) {
-        if (err) throw err;
+        if (err) console.log(err);
+        should.not.exist(err);
         copayerIds.push(result.copayerId);
         return cb(err);
       });

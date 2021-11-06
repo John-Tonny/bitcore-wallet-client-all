@@ -1,6 +1,6 @@
 {
   "name": "vircle-lib",
-  "version": "8.22.2",
+  "version": "8.20.4",
   "description": "A pure and powerful JavaScript Vircle library.",
   "author": "JohnTonny <dev@vircle.com>",
   "main": "index.js",
@@ -45,7 +45,7 @@
     "lodash": "=4.17.15"
   },
   "devDependencies": {
-    "bitcore-build": "^8.22.2",
+    "bitcore-build": "^8.20.4",
     "brfs": "^2.0.1",
     "chai": "^4.2.0",
     "gulp": "^4.0.0",

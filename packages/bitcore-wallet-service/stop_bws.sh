@@ -5,11 +5,11 @@ if [ $# -eq 0 ]; then
   exit -1
 fi
 
-MODULE_PATH=/home/ubuntu/bitcore/packages
-NODE_PATH=/home/ubuntu/.nvm/versions/node/v10.5.0/bin
+USER_PATH=/mnt/ethereum
+MODULE_PATH=$USER_PATH/bitcore/packages
+NODE_PATH=$USER_PATH/.nvm/versions/node/v10.5.0/bin
 
 cd $MODULE_PATH/bitcore-wallet-service
-
 
 stop_program ()
 {

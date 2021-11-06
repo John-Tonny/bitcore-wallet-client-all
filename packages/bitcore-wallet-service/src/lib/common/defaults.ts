@@ -17,7 +17,7 @@ module.exports = {
   MAX_MAIN_ADDRESS_GAP: 20,
 
   // TODO: should allow different gap sizes for external/internal chains
-  SCAN_ADDRESS_GAP: 30,
+  SCAN_ADDRESS_GAP: 300,
 
   FEE_LEVELS: {
     btc: [
@@ -52,7 +52,6 @@ module.exports = {
       {
         name: 'normal',
         nbBlocks: 2,
-        multiplier: 1.05, // To fix fees < 1sat/byte
         defaultValue: 2000
       }
     ],
@@ -227,17 +226,15 @@ module.exports = {
 
   MAX_TX_SIZE_IN_KB_BCH: 100,
 
-  MAX_TX_SIZE_IN_KB_VCL: 100,
-
   // MAX_TX_SIZE_IN_KB_ETH: 500, // not used
   // MAX_TX_SIZE_IN_KB_XRP: 1000, // not used
 
   MAX_FEE_PER_KB: {
     btc: 10000 * 1000, // 10k sat/b
     bch: 10000 * 1000, // 10k sat/b
-    eth: 1000000000000, // 50 Gwei,
+    eth: 50000000000, // 50 Gwei,
     vcl: 10000 * 1000, // 10k sat/b
-    xrp: 1000000000000
+    xrp: 50000000000
   },
 
   MIN_TX_FEE: {
@@ -252,7 +249,7 @@ module.exports = {
     btc: 0.05 * 1e8,
     bch: 0.05 * 1e8,
     eth: 1 * 1e18, // 1 eth
-    vcl: 0.05 * 1e8,
+    vcl: 1 * 1e8, // 1 vcl john
     xrp: 1 * 1e6 // 1 xrp
   },
 
@@ -261,5 +258,13 @@ module.exports = {
   MIN_GAS_LIMIT: 21000,
 
   // XRP has a non-refundable mininum activation fee / balance
-  MIN_XRP_BALANCE: 20000000
+  MIN_XRP_BALANCE: 20000000,
+
+  // john
+  //  Coinbase transaction outputs can only be spent after this number of new blocks (network rule)
+  COINBASE_MATURITY_VCL: 100,
+
+  MAX_POST_SIZE: '1000mb',
+
+  DATA_OUTPUT_LEN: 80
 };

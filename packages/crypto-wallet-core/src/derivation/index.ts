@@ -1,8 +1,4 @@
-import { BchDeriver } from './bch';
-import { BtcDeriver } from './btc';
-import { EthDeriver } from './eth';
 import { Paths } from './paths';
-import { XrpDeriver } from './xrp';
 // john
 import { VclDeriver } from './vcl';
 
@@ -19,11 +15,7 @@ export interface IDeriver {
 }
 
 const derivers: { [chain: string]: IDeriver } = {
-  BTC: new BtcDeriver(),
-  BCH: new BchDeriver(),
-  ETH: new EthDeriver(),
-  XRP: new XrpDeriver(),
-  VCL: new VclDeriver()  
+  VCL: new VclDeriver()
 };
 
 export class DeriverProxy {

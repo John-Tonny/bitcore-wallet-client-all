@@ -20,6 +20,7 @@ export class Request {
   constructor(url?, opts?) {
     this.baseUrl = url;
 
+    // request can be overload only for testing
     this.r = opts.r || request;
     this.supportStaffWalletId = opts.supportStaffWalletId;
 
@@ -50,10 +51,9 @@ export class Request {
   //  @param {String} url - The URL for the request
   //  @param {Object} args - The arguments in case this is a POST/PUT request
   //  @param {String} privKey - Private key to sign the request
-  static _signRequest(method, url, args, privKey, coin) {
-    coin = coin || 'vcl';
+  static _signRequest(method, url, args, privKey) {
     var message = [method.toLowerCase(), url, JSON.stringify(args)].join('|');
-    return Utils.signMessage(message, privKey, coin);
+    return Utils.signMessage(message, privKey);
   }
 
   //  Do an HTTP request
@@ -65,7 +65,7 @@ export class Request {
   //  @param {Callback} cb
   doRequest(method, url, args, useSession, cb) {
     var headers = this.getHeaders(method, url, args);
-    let coin = args.coin || 'vcl';
+
     if (this.credentials) {
       headers['x-identity'] = this.credentials.copayerId;
 
@@ -76,7 +76,7 @@ export class Request {
         var key = args._requestPrivKey || this.credentials.requestPrivKey;
         if (key) {
           delete args['_requestPrivKey'];
-          reqSignature = Request._signRequest(method, url, args, key, coin);
+          reqSignature = Request._signRequest(method, url, args, key);
         }
         headers['x-signature'] = reqSignature;
       }

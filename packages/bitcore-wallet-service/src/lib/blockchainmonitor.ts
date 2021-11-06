@@ -5,7 +5,6 @@ import 'source-map-support/register';
 import { BlockChainExplorer } from './blockchainexplorer';
 import { ChainService } from './chain/index';
 import { Lock } from './lock';
-import logger from './logger';
 import { MessageBroker } from './messagebroker';
 import { Notification } from './model';
 import { WalletService } from './server';
@@ -16,6 +15,8 @@ const Common = require('./common');
 const Constants = Common.Constants;
 const Utils = Common.Utils;
 const Defaults = Common.Defaults;
+let log = require('npmlog');
+log.debug = log.verbose;
 
 type throttledNewBlocksFnType = (that: any, coin: any, network: any, hash: any) => void;
 
@@ -48,7 +49,6 @@ export class BlockchainMonitor {
       [
         done => {
           this.explorers = {
-            eth: {},
             vcl: {}
           };
 
@@ -122,7 +122,7 @@ export class BlockchainMonitor {
       ],
       err => {
         if (err) {
-          logger.error(err);
+          log.error(err);
         }
         return cb(err);
       }
@@ -147,12 +147,12 @@ export class BlockchainMonitor {
       this.lastTx[this.Nix++] = data.txid;
       if (this.Nix >= this.N) this.Nix = 0;
 
-      logger.debug(`\tChecking ${coin}/${network} txid: ${data.txid}`);
+      log.debug(`\tChecking ${coin}/${network} txid: ${data.txid}`);
     }
 
     this.storage.fetchTxByHash(data.txid, (err, txp) => {
       if (err) {
-        logger.error('Could not fetch tx from the db');
+        log.error('Could not fetch tx from the db');
         return;
       }
       if (!txp || txp.status != 'accepted') return;
@@ -160,7 +160,7 @@ export class BlockchainMonitor {
       const walletId = txp.walletId;
 
       if (!processIt) {
-        logger.debug(
+        log.debug(
           'Detected broadcast ' +
             data.txid +
             ' of an accepted txp [' +
@@ -174,12 +174,12 @@ export class BlockchainMonitor {
         return setTimeout(this._handleThirdPartyBroadcasts.bind(this, coin, network, data, true), 20 * 1000);
       }
 
-      logger.debug('Processing accepted txp [' + txp.id + '] for wallet ' + walletId + ' [' + txp.amount + 'sat ]');
+      log.debug('Processing accepted txp [' + txp.id + '] for wallet ' + walletId + ' [' + txp.amount + 'sat ]');
 
       txp.setBroadcasted();
 
       this.storage.storeTx(this.walletId, txp, err => {
-        if (err) logger.error('Could not save TX');
+        if (err) log.error('Could not save TX');
 
         const args = {
           txProposalId: txp.id,
@@ -202,39 +202,29 @@ export class BlockchainMonitor {
     let out = data.out;
     if (!out || !out.address || out.address.length < 10) return;
 
-    // john
-    let out_address = out.address;
-
     // For eth, amount = 0 is ok, repeating addr payments are ok (no change).
     if (coin != 'eth') {
       if (!(out.amount > 0)) return;
       if (this.last.indexOf(out.address) >= 0) {
-        logger.debug('The incoming tx"s out ' + out.address + ' was already processed');
+        log.debug('The incoming tx"s out ' + out.address + ' was already processed');
         return;
       }
       this.last[this.Ni++] = out.address;
       if (this.Ni >= this.N) this.Ni = 0;
     } else if (coin == 'eth') {
       if (this.lastTx.indexOf(data.txid) >= 0) {
-        logger.debug('The incoming tx ' + data.txid + ' was already processed');
+        log.debug('The incoming tx ' + data.txid + ' was already processed');
         return;
       }
 
       this.lastTx[this.Nix++] = data.txid;
       if (this.Nix >= this.N) this.Nix = 0;
-
-      // john
-      if (network == 'testnet') {
-        out_address += ':testnet';
-      }
     }
 
-    logger.debug(`Checking ${coin}:${network}:${out.address} ${out.amount}`);
-    // john
-    // this.storage.fetchAddressByCoin(coin, out.address, (err, address) => {
-    this.storage.fetchAddressByCoin(coin, out_address, (err, address) => {
+    log.debug(`Checking ${coin}:${network}:${out.address} ${out.amount}`);
+    this.storage.fetchAddressByCoin(coin, out.address, (err, address) => {
       if (err) {
-        logger.error('Could not fetch addresses from the db');
+        log.error('Could not fetch addresses from the db');
         return;
       }
       if (!address || address.isChange) {
@@ -250,11 +240,11 @@ export class BlockchainMonitor {
           return n.type == 'NewIncomingTx' && n.data && n.data.txid == data.txid;
         });
         if (alreadyNotified) {
-          logger.debug('The incoming tx ' + data.txid + ' was already notified');
+          log.debug('The incoming tx ' + data.txid + ' was already notified');
           return;
         }
 
-        logger.debug('Incoming tx for wallet ' + walletId + ' [' + out.amount + 'amount -> ' + out.address + ']');
+        log.debug('Incoming tx for wallet ' + walletId + ' [' + out.amount + 'amount -> ' + out.address + ']');
 
         const notification = Notification.create({
           type: 'NewIncomingTx',
@@ -262,8 +252,7 @@ export class BlockchainMonitor {
             txid: data.txid,
             address: out.address,
             amount: out.amount,
-            tokenAddress: out.tokenAddress,
-            multisigContractAddress: out.multisigContractAddress
+            tokenAddress: out.tokenAddress
           },
           walletId
         });
@@ -276,7 +265,7 @@ export class BlockchainMonitor {
   }
 
   _notifyNewBlock(coin, network, hash) {
-    logger.debug(` ** NOTIFY New ${coin}/${network} block ${hash}`);
+    log.debug(` ** NOTIFY New ${coin}/${network} block ${hash}`);
     const notification = Notification.create({
       type: 'NewBlock',
       walletId: `${coin}:${network}`, // use coin:network name as wallet id for global notifications
@@ -295,7 +284,7 @@ export class BlockchainMonitor {
 
     const processTriggeredSubs = (subs, cb) => {
       async.each(subs, (sub: any) => {
-        logger.debug('New tx confirmation ' + sub.txid);
+        log.debug('New tx confirmation ' + sub.txid);
         sub.isActive = false;
         this.storage.storeTxConfirmationSub(sub, err => {
           if (err) return cb(err);
@@ -321,7 +310,7 @@ export class BlockchainMonitor {
 
     explorer.getTxidsInBlock(hash, (err, txids) => {
       if (err) {
-        logger.error('Could not fetch txids from block ' + hash, err);
+        log.error('Could not fetch txids from block ' + hash, err);
         return;
       }
 
@@ -335,7 +324,7 @@ export class BlockchainMonitor {
         });
         processTriggeredSubs(triggered, err => {
           if (err) {
-            logger.error('Could not process tx confirmations', err);
+            log.error('Could not process tx confirmations', err);
           }
           return;
         });
@@ -344,7 +333,7 @@ export class BlockchainMonitor {
   }
 
   _handleNewBlock(coin, network, hash) {
-    logger.debug(`New ${coin}/${network} block ${hash}`);
+    log.debug(`New ${coin}/${network} block ${hash}`);
 
     // clear height cache.
     const cacheKey = Storage.BCHEIGHT_KEY + ':' + coin + ':' + network;

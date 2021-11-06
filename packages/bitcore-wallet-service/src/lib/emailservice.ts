@@ -6,7 +6,6 @@ import 'source-map-support/register';
 // sending function from `.send` to `.sendMail`.
 // import * as nodemailer from nodemailer';
 import { Lock } from './lock';
-import logger from './logger';
 import { MessageBroker } from './messagebroker';
 import { Email } from './model';
 import { Storage } from './storage';
@@ -23,6 +22,9 @@ const fs = require('fs');
 const path = require('path');
 const Utils = require('./common/utils');
 const Defaults = require('./common/defaults');
+
+let log = require('npmlog');
+log.debug = log.verbose;
 
 const EMAIL_TYPES = {
   NewCopayer: {
@@ -100,7 +102,7 @@ export class EmailService {
 
     this.defaultLanguage = opts.emailOpts.defaultLanguage || 'en';
     this.defaultUnit = opts.emailOpts.defaultUnit || 'vcl';
-    logger.info('Email templates at:' + (opts.emailOpts.templatePath || __dirname + '/../../templates') + '/');
+    log.info('Email templates at:' + (opts.emailOpts.templatePath || __dirname + '/../../templates') + '/');
     this.templatePath = path.normalize((opts.emailOpts.templatePath || __dirname + '/../../templates') + '/');
 
     this.publicTxUrlTemplate = opts.emailOpts.publicTxUrlTemplate || {};
@@ -140,7 +142,7 @@ export class EmailService {
       ],
       err => {
         if (err) {
-          logger.error(err);
+          log.error(err);
         }
         return cb(err);
       }
@@ -184,7 +186,7 @@ export class EmailService {
       try {
         return Mustache.render(t, data);
       } catch (e) {
-        logger.error('Could not apply data to template', e);
+        log.error('Could not apply data to template', e);
         error = e;
       }
     });
@@ -210,7 +212,7 @@ export class EmailService {
             if (notification.creatorId != p.copayerId && !emailType.notifyOthers) return;
             if (!_.includes(this.availableLanguages, p.language)) {
               if (p.language) {
-                logger.warn('Language for email "' + p.language + '" not available.');
+                log.warn('Language for email "' + p.language + '" not available.');
               }
               p.language = this.defaultLanguage;
             }
@@ -239,12 +241,8 @@ export class EmailService {
   _getDataForTemplate(notification, recipient, cb) {
     // TODO: Declare these in BWU
     const UNIT_LABELS = {
-      btc: 'BTC',
       bit: 'bits',
-      bch: 'BCH',
-      eth: 'ETH',
-      vcl: 'VCL',
-      xrp: 'XRP'
+      vcl: 'VCL'
     };
 
     const data = _.cloneDeep(notification.data);
@@ -285,7 +283,7 @@ export class EmailService {
           try {
             data.urlForTx = Mustache.render(urlTemplate, data);
           } catch (ex) {
-            logger.warn('Could not render public url for tx', ex);
+            log.warn('Could not render public url for tx', ex);
           }
         }
       }
@@ -308,7 +306,7 @@ export class EmailService {
     this.mailer
       .send(mailOptions)
       .then(result => {
-        logger.debug('Message sent: ', result || '');
+        log.debug('Message sent: ', result || '');
         return cb(null, result);
       })
       .catch(err => {
@@ -317,7 +315,7 @@ export class EmailService {
           errStr = err.toString().substr(0, 100);
         } catch (e) {}
 
-        logger.warn('An error occurred when trying to send email to ' + email.to, errStr || err);
+        log.warn('An error occurred when trying to send email to ' + email.to, errStr || err);
         return cb(err);
       });
   }
@@ -444,7 +442,7 @@ export class EmailService {
                     errStr = err.toString().substr(0, 100);
                   } catch (e) {}
 
-                  logger.warn('An error ocurred generating email notification', errStr || err);
+                  log.warn('An error ocurred generating email notification', errStr || err);
                 }
                 return cb(err);
               }

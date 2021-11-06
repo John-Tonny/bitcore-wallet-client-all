@@ -2,7 +2,33 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a6c0a651-8669-4f04-a85c-58e0cac558cd" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/../bitcore-p2p/lib/messages/commands/dseg.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-node/start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-node/start.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-node/stop.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-node/stop.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-p2p/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-p2p/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-p2p/lib/inventory.js" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-p2p/lib/inventory.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-p2p/lib/messages/builder.js" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-p2p/lib/messages/builder.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-p2p/lib/messages/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-p2p/lib/messages/utils.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../bitcore-wallet-client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-client/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-client/src/lib/key.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-client/src/lib/key.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-client/src/lib/masternode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-client/src/lib/masternode.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/src/config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/src/config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/common/defaults.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/src/lib/common/defaults.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_bcmonitor.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_bcmonitor.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_bws.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_bws.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_emailservice.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_emailservice.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_fiatrateservice.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_fiatrateservice.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_masternodeservice.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_masternodeservice.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_messagebroker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_messagebroker.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/start_pushnotificationsservice.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/start_pushnotificationsservice.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../bitcore-wallet-service/stop_bws.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../bitcore-wallet-service/stop_bws.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../insight/insight.pid" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../insight/src/components/denomination/denomination.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../insight/src/components/denomination/denomination.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../insight/src/providers/currency/currency.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../insight/src/providers/currency/currency.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../insight/start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../insight/start.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../insight/stop.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../insight/stop.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/networks.js" beforeDir="false" afterPath="$PROJECT_DIR$/lib/networks.js" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -12,15 +38,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/transaction/transaction.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="6690">
-              <caret line="446" column="15" selection-start-line="445" selection-end-line="448" selection-end-column="2" />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/crypto/hash.js">
           <provider selected="true" editor-type-id="text-editor">
@@ -39,10 +56,10 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/hdprivatekey.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="74">
+            <state relative-caret-position="6330">
               <caret line="422" column="30" selection-start-line="422" selection-start-column="22" selection-end-line="422" selection-end-column="30" />
             </state>
           </provider>
@@ -51,17 +68,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/hdpublickey.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="463">
+            <state relative-caret-position="5790">
               <caret line="386" selection-start-line="386" selection-end-line="386" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/networks.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2370">
-              <caret line="158" column="21" selection-start-line="158" selection-start-column="21" selection-end-line="158" selection-end-column="21" />
+            <state relative-caret-position="-21">
+              <caret line="158" column="15" lean-forward="true" selection-start-line="158" selection-start-column="15" selection-end-line="158" selection-end-column="15" />
             </state>
           </provider>
         </entry>
@@ -70,11 +87,7 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>isNotWitnesses</find>
-      <find>isWitnessScriptHashOut</find>
       <find>tostring</find>
-      <find>fromString</find>
-      <find>fromBuffer</find>
       <find>hmac</find>
       <find>sha256</find>
       <find>networkMaps</find>
@@ -100,6 +113,10 @@
       <find>useSegwit</find>
       <find>_buildFromPrivate</find>
       <find>zprv</find>
+      <find>fromBufferReader</find>
+      <find>fromString</find>
+      <find>fromBuffer</find>
+      <find>ypubkey</find>
     </findStrings>
     <dirStrings>
       <dir>$PROJECT_DIR$/lib</dir>
@@ -145,18 +162,6 @@
               <item name="vircle-lib" type="b2602c69:ProjectViewProjectNode" />
               <item name="vircle-lib" type="462c0819:PsiDirectoryNode" />
               <item name="lib" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="vircle-lib" type="b2602c69:ProjectViewProjectNode" />
-              <item name="vircle-lib" type="462c0819:PsiDirectoryNode" />
-              <item name="lib" type="462c0819:PsiDirectoryNode" />
-              <item name="crypto" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="vircle-lib" type="b2602c69:ProjectViewProjectNode" />
-              <item name="vircle-lib" type="462c0819:PsiDirectoryNode" />
-              <item name="lib" type="462c0819:PsiDirectoryNode" />
-              <item name="util" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -208,17 +213,23 @@
       <workItem from="1595811559350" duration="2899000" />
       <workItem from="1595821016575" duration="3265000" />
       <workItem from="1595842459457" duration="92000" />
+      <workItem from="1596874705933" duration="1074000" />
+      <workItem from="1596877789560" duration="15000" />
+      <workItem from="1597367864669" duration="44000" />
+      <workItem from="1597369434380" duration="44000" />
+      <workItem from="1604397850076" duration="139000" />
+      <workItem from="1604735888462" duration="103000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="50620000" />
+    <option name="totallyTimeSpent" value="52039000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="8" y="31" width="1536" height="801" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.30254352" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.3266399" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Gulp" order="2" side_tool="true" />
       <window_info id="npm" order="3" side_tool="true" />
@@ -311,13 +322,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/transaction/output.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="483">
-          <caret line="161" selection-start-line="160" selection-end-line="161" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib/address.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1141">
@@ -363,6 +367,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/lib/transaction/transaction.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="599">
+          <caret line="480" column="22" selection-start-line="480" selection-start-column="19" selection-end-line="480" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/transaction/output.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2238">
+          <caret line="161" selection-start-line="160" selection-end-line="161" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/transaction/input/input.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2295">
@@ -370,10 +388,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/transaction/transaction.js">
+    <entry file="file://$PROJECT_DIR$/lib/util/preconditions.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="6690">
-          <caret line="446" column="15" selection-start-line="445" selection-end-line="448" selection-end-column="2" />
+        <state relative-caret-position="285">
+          <caret line="19" column="30" lean-forward="true" selection-start-line="19" selection-start-column="30" selection-end-line="19" selection-end-column="30" />
         </state>
       </provider>
     </entry>
@@ -391,24 +409,24 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/networks.js">
+    <entry file="file://$PROJECT_DIR$/lib/hdprivatekey.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2370">
-          <caret line="158" column="21" selection-start-line="158" selection-start-column="21" selection-end-line="158" selection-end-column="21" />
+        <state relative-caret-position="6330">
+          <caret line="422" column="30" selection-start-line="422" selection-start-column="22" selection-end-line="422" selection-end-column="30" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/hdpublickey.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="463">
+        <state relative-caret-position="5790">
           <caret line="386" selection-start-line="386" selection-end-line="386" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/hdprivatekey.js">
+    <entry file="file://$PROJECT_DIR$/lib/networks.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="74">
-          <caret line="422" column="30" selection-start-line="422" selection-start-column="22" selection-end-line="422" selection-end-column="30" />
+        <state relative-caret-position="-21">
+          <caret line="158" column="15" lean-forward="true" selection-start-line="158" selection-start-column="15" selection-end-line="158" selection-end-column="15" />
         </state>
       </provider>
     </entry>

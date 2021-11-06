@@ -1,7 +1,6 @@
 import * as async from 'async';
 import * as _ from 'lodash';
 import 'source-map-support/register';
-import logger from '../lib/logger';
 
 import { BlockChainExplorer } from './blockchainexplorer';
 import { Lock } from './lock';
@@ -19,6 +18,9 @@ const Common = require('./common');
 const Constants = Common.Constants;
 const Utils = require('./common/utils');
 const Defaults = require('./common/defaults');
+
+let log = require('npmlog');
+log.debug = log.verbose;
 
 export class MasternodeService {
   explorers: any;
@@ -107,7 +109,7 @@ export class MasternodeService {
       ],
       err => {
         if (err) {
-          logger.error(err);
+          log.error(err);
         }
         return cb(err);
       }
@@ -143,12 +145,12 @@ export class MasternodeService {
         };
         explorer.getMasternodeStatus(opts, (err, res) => {
           if (err) {
-            logger.warn('Error retrieving masternode status for ' + coin, err);
+            log.warn('Error retrieving masternode status for ' + coin, err);
             return next2();
           }
           this.updateMasternodes(coin, network, res, err => {
             if (err) {
-              logger.warn('Error storing masternode status for ' + coin, err);
+              log.warn('Error storing masternode status for ' + coin, err);
             }
             return next2();
           });
@@ -201,13 +203,13 @@ export class MasternodeService {
     for (const imasternode of imasternodes) {
       this.storage.fetchMasternodesFromTxId(imasternode.txid, (err, res) => {
         if (err) {
-          logger.warn('Error fetch masternode status for ' + coin + '-' + imasternode.txid, err);
+          log.warn('Error fetch masternode status for ' + coin + '-' + imasternode.txid, err);
         } else {
           if (res) {
             let oldStatus = res.status;
             this.storage.updateMasternode(imasternode, err => {
               if (err) {
-                logger.warn('Error update masternode status for ' + coin + '-' + imasternode.txid, err);
+                log.warn('Error update masternode status for ' + coin + '-' + imasternode.txid, err);
               } else {
                 if (oldStatus != imasternode.status) {
                   const args = {

@@ -4,7 +4,6 @@ import _ from 'lodash';
 import 'source-map-support/register';
 
 import request from 'request';
-import logger from './logger';
 import { MessageBroker } from './messagebroker';
 import { INotification, IPreferences } from './model';
 import { Storage } from './storage';
@@ -16,6 +15,8 @@ const Utils = require('./common/utils');
 const Defaults = require('./common/defaults');
 const Constants = require('./common/constants');
 const sjcl = require('sjcl');
+const log = require('npmlog');
+log.debug = log.verbose;
 
 const PUSHNOTIFICATIONS_TYPES = {
   NewCopayer: {
@@ -32,6 +33,10 @@ const PUSHNOTIFICATIONS_TYPES = {
   },
   NewIncomingTx: {
     filename: 'new_incoming_tx'
+  },
+  // john
+  NewMasternode: {
+    filename: 'new_masternode'
   },
   TxProposalFinallyRejected: {
     filename: 'txp_finally_rejected'
@@ -90,7 +95,7 @@ export class PushNotificationsService {
       (opts.pushNotificationsOpts.templatePath || __dirname + '../../templates') + '/'
     );
     this.defaultLanguage = opts.pushNotificationsOpts.defaultLanguage || 'en';
-    this.defaultUnit = opts.pushNotificationsOpts.defaultUnit || 'btc';
+    this.defaultUnit = opts.pushNotificationsOpts.defaultUnit || 'vcl';
     this.subjectPrefix = opts.pushNotificationsOpts.subjectPrefix || '';
     this.pushServerUrl = opts.pushNotificationsOpts.pushServerUrl;
     this.authorizationKey = opts.pushNotificationsOpts.authorizationKey;
@@ -122,7 +127,7 @@ export class PushNotificationsService {
       ],
       err => {
         if (err) {
-          logger.error(err);
+          log.error(err);
         }
         return cb(err);
       }
@@ -135,13 +140,13 @@ export class PushNotificationsService {
     const notifType = PUSHNOTIFICATIONS_TYPES[notification.type];
     if (!notifType) return cb();
 
-    logger.debug('Notification received: ' + notification.type);
-    logger.debug(JSON.stringify(notification));
+    log.debug('Notification received: ' + notification.type);
+    log.debug(JSON.stringify(notification));
 
     this._checkShouldSendNotif(notification, (err, should) => {
       if (err) return cb(err);
 
-      logger.debug('Should send notification: ', should);
+      log.debug('Should send notification: ', should);
       if (!should) return cb();
 
       this._getRecipientsList(notification, notifType, (err, recipientsList) => {
@@ -164,10 +169,6 @@ export class PushNotificationsService {
                     const notifications = _.map(subs, sub => {
                       const tokenAddress =
                         notification.data && notification.data.tokenAddress ? notification.data.tokenAddress : null;
-                      const multisigContractAddress =
-                        notification.data && notification.data.multisigContractAddress
-                          ? notification.data.multisigContractAddress
-                          : null;
                       return {
                         to: sub.token,
                         priority: 'high',
@@ -182,7 +183,6 @@ export class PushNotificationsService {
                         data: {
                           walletId: sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(notification.walletId)),
                           tokenAddress,
-                          multisigContractAddress,
                           copayerId: sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(recipient.copayerId)),
                           title: content.plain.subject,
                           body: content.plain.body,
@@ -204,11 +204,11 @@ export class PushNotificationsService {
                 notifications,
                 (notification, next) => {
                   this._makeRequest(notification, (err, response) => {
-                    if (err) logger.error(err);
+                    if (err) log.error(err);
                     if (response) {
-                      logger.debug('Request status: ', response.statusCode);
-                      logger.debug('Request message: ', response.statusMessage);
-                      logger.debug('Request body: ', response.request.body);
+                      log.debug('Request status: ', response.statusCode);
+                      log.debug('Request message: ', response.statusMessage);
+                      log.debug('Request body: ', response.request.body);
                     }
                     next();
                   });
@@ -221,7 +221,7 @@ export class PushNotificationsService {
           ],
           err => {
             if (err) {
-              logger.error('An error ocurred generating notification', err);
+              log.error('An error ocurred generating notification', err);
             }
             return cb(err);
           }
@@ -247,13 +247,13 @@ export class PushNotificationsService {
       }
 
       this.storage.fetchPreferences(notification.walletId, null, (err, preferences) => {
-        if (err) logger.error(err);
+        if (err) log.error(err);
         if (_.isEmpty(preferences)) preferences = [];
 
         const recipientPreferences = _.compact(
           _.map(preferences, p => {
             if (!_.includes(this.availableLanguages, p.language)) {
-              if (p.language) logger.warn('Language for notifications "' + p.language + '" not available.');
+              if (p.language) log.warn('Language for notifications "' + p.language + '" not available.');
               p.language = this.defaultLanguage;
             }
 
@@ -335,16 +335,8 @@ export class PushNotificationsService {
 
   _getDataForTemplate(notification: INotification, recipient, cb) {
     const UNIT_LABELS = {
-      btc: 'BTC',
       bit: 'bits',
-      bch: 'BCH',
-      eth: 'ETH',
-      xrp: 'XRP',
-      usdc: 'USDC',
-      pax: 'PAX',
-      gusd: 'GUSD',
-      busd: 'BUSD',
-      evel: 'EVCL'
+      vcl: 'VCL'
     };
     const data = _.cloneDeep(notification.data);
     data.subjectPrefix = _.trim(this.subjectPrefix + ' ');
@@ -407,7 +399,7 @@ export class PushNotificationsService {
       try {
         return Mustache.render(t, data);
       } catch (e) {
-        logger.error('Could not apply data to template', e);
+        log.error('Could not apply data to template', e);
         error = e;
       }
     });

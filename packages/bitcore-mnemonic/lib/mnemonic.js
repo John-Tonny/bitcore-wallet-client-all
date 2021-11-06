@@ -1,6 +1,6 @@
 'use strict';
 
-var bitcore = require('bitcore-lib');
+var bitcore = require('vircle-lib');
 var BN = bitcore.crypto.BN;
 var unorm = require('unorm');
 var _ = bitcore.deps._;
@@ -47,7 +47,6 @@ var Mnemonic = function(data, wordlist, useMulti) {
     data = null;
   }
 
-
   // handle data overloading
   var ent, phrase, seed;
   if (Buffer.isBuffer(data)) {
@@ -61,7 +60,6 @@ var Mnemonic = function(data, wordlist, useMulti) {
     throw new bitcore.errors.InvalidArgument('data', 'Must be a Buffer, a string or an integer');
   }
   ent = ent || 128;
-
 
   // check and detect wordlist
   wordlist = wordlist || Mnemonic._getDictionary(phrase);
