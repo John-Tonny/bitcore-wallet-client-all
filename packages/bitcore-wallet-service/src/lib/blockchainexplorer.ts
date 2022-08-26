@@ -5,9 +5,6 @@ import { ChainService } from './chain/index';
 const $ = require('preconditions').singleton();
 const Common = require('./common');
 const Defaults = Common.Defaults;
-let log = require('npmlog');
-log.debug = log.verbose;
-
 const PROVIDERS = {
   v8: {
     btc: {
@@ -19,22 +16,30 @@ const PROVIDERS = {
       testnet: 'https://api.bitpay.com'
     },
     eth: {
-      livenet: 'https://api-eth.bitcore.io',
-      testnet: 'https://api-eth.bitcore.io'
+      livenet: 'http://127.0.0.1:3000',
+      testnet: 'http://127.0.0.1:8200'
     },
     xrp: {
       livenet: 'https://api-xrp.bitcore.io',
       testnet: 'https://api-xrp.bitcore.io'
     },
+    doge: {
+      livenet: 'https://api.bitpay.com',
+      testnet: 'https://api.bitpay.com'
+    },
+    ltc: {
+      livenet: 'https://api.bitpay.com',
+      testnet: 'https://api.bitpay.com'
+    },
     vcl: {
-      livenet: 'https://bws.vircle.xyz',
-      testnet: 'https://bws.vircle.xyz'
+      livenet: 'http://127.0.0.1:3000',
+      testnet: 'http://127.0.0.1:8200'
     }
   }
 };
 
 export function BlockChainExplorer(opts) {
-  $.checkArgument(opts);
+  $.checkArgument(opts, 'Failed state: opts undefined at <BlockChainExplorer()>');
 
   const provider = opts.provider || 'v8';
   const coin = ChainService.getChain(opts.coin || Defaults.COIN).toLowerCase();

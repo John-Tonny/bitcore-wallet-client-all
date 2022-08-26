@@ -2,8 +2,7 @@
 
 var config = require('../config');
 const MasternodeService = require('../lib/masternodeservice');
-// const log = require('npmlog');
-// log.debug = log.verbose;
+import logger from '../lib/logger';
 
 const masternodeService = new MasternodeService();
 masternodeService.init(config, err => {
@@ -11,6 +10,6 @@ masternodeService.init(config, err => {
   masternodeService.startCron(config, err => {
     if (err) throw err;
 
-    console.log('masternode service started');
+    logger.info('masternode service started');
   });
 });

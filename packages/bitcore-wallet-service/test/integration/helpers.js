@@ -17,7 +17,9 @@ var config = require('../test-config');
 var Bitcore = require('bitcore-lib');
 var Bitcore_ = {
   btc: Bitcore,
-  bch: require('bitcore-lib-cash')
+  bch: require('bitcore-lib-cash'),
+  doge: require('bitcore-lib-doge'),
+  ltc: require('bitcore-lib-ltc')
 };
 
 var { ChainService } = require('../../ts_build/lib/chain/index');
@@ -45,9 +47,9 @@ helpers.before = function(cb) {
   function getDb(cb) {
     if (useMongoDb) {
       var mongodb = require('mongodb');
-      mongodb.MongoClient.connect(config.mongoDb.uri, function(err, db) {
+      mongodb.MongoClient.connect(config.mongoDb.uri, { useUnifiedTopology: true }, function(err, client) {
         if (err) throw err;
-        return cb(db);
+        return cb(client.db(config.mongoDb.dbname));
       });
     } else {
       throw "tingodb not longer supported";
@@ -67,6 +69,7 @@ helpers.before = function(cb) {
     be.getAddressUtxos = sinon.stub().callsArgWith(2, null, []);
     be.getCheckData = sinon.stub().callsArgWith(1, null, {sum: 100});
     be.getUtxos = sinon.stub().callsArgWith(1, null,[]);
+    be.getTransactions = sinon.stub().callsArgWith(2, null,[]);
     be.getBlockchainHeight = sinon.stub().callsArgWith(0, null, 1000, 'hash');
     be.estimateGas = sinon.stub().callsArgWith(1, null, Defaults.MIN_GAS_LIMIT);
     be.getBalance = sinon.stub().callsArgWith(1, null, {unconfirmed:0, confirmed: '10000000000', balance: '10000000000' });
@@ -114,7 +117,7 @@ helpers.beforeEach = function(cb) {
 
 
   async.each(_.values(collections), (x, icb)=> {
-    storage.db.collection(x).remove({}, icb);
+    storage.db.collection(x).deleteMany({}, icb);
   }, (err) => {
     should.not.exist(err);
     var opts = {
@@ -246,17 +249,17 @@ helpers.createAndJoinWallet = function(m, n, opts, cb) {
     coin: opts.coin || 'btc',
     network: opts.network || 'livenet',
     nativeCashAddr: opts.nativeCashAddr,
+    useNativeSegwit: opts.useNativeSegwit,
   };
 
   if (_.isBoolean(opts.supportBIP44AndP2PKH))
     walletOpts.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
   server.createWallet(walletOpts, function(err, walletId) {
-    if (err) return cb(err);
+    if (err) throw err;
 
     async.eachSeries(_.range(n), function(i, cb) {
       var copayerData = TestData.copayers[i + offset];
-
 
       var pub = (_.isBoolean(opts.supportBIP44AndP2PKH) && !opts.supportBIP44AndP2PKH) ? copayerData.xPubKey_45H : copayerData.xPubKey_44H_0H_0H;
 
@@ -280,8 +283,7 @@ helpers.createAndJoinWallet = function(m, n, opts, cb) {
         copayerOpts.supportBIP44AndP2PKH = opts.supportBIP44AndP2PKH;
 
       server.joinWallet(copayerOpts, function(err, result) {
-        if (err) console.log(err);
-        should.not.exist(err);
+        if (err) throw err;
         copayerIds.push(result.copayerId);
         return cb(err);
       });
@@ -362,7 +364,8 @@ helpers.stubUtxos = function(server, wallet, amounts, opts, cb) {
       if (opts.tokenAddress) {
         return cb(null, {unconfirmed:0, confirmed: 2e6, balance: 2e6 });
       }
-      return cb(null, {unconfirmed:0, confirmed: 0, balance: 0 });
+      let conf =  _.sum(_.map(amounts, x =>  Number((x*1e18).toFixed(0))));
+      return cb(null, {unconfirmed:0, confirmed: conf, balance: conf });
     }
     blockchainExplorer.estimateFee = sinon.stub().callsArgWith(1, null, 20000000000);
     return cb();
@@ -411,11 +414,17 @@ helpers.stubUtxos = function(server, wallet, amounts, opts, cb) {
           case Constants.SCRIPT_TYPES.P2SH:
             scriptPubKey = S.buildMultisigOut(address.publicKeys, wallet.m).toScriptHashOut();
             break;
-          case Constants.SCRIPT_TYPES.P2PKH:
+         case Constants.SCRIPT_TYPES.P2PKH:
             scriptPubKey = S.buildPublicKeyHashOut(address.address);
             break;
+          case Constants.SCRIPT_TYPES.P2WPKH:
+            scriptPubKey = S.buildWitnessV0Out(address.address);
+            break;
+           case Constants.SCRIPT_TYPES.P2WSH:
+            scriptPubKey = S.buildWitnessV0Out(address.address);
+            break;
         }
-        should.exist(scriptPubKey);
+        should.exist(scriptPubKey, 'unknown address type:' + wallet.addressType);
 
         return {
           txid: helpers.randomTXID(),
@@ -519,7 +528,7 @@ helpers.stubCheckData = function(bc, server, isBCH, cb) {
 helpers.stubFeeLevels = function(levels, fill, coin) {
   coin = coin || 'btc';
   let div = 1;
-  if (coin == 'btc' || coin == 'bch') {
+  if (coin == 'btc' || coin == 'bch' || coin == 'doge' || coin == 'ltc') {
     div = 1e8;  // bitcoind returns values in BTC amounts
   }
 

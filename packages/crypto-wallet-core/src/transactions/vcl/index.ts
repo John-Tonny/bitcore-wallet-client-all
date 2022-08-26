@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { Key } from '../../derivation';
 
 export class VCLTxProvider {
-  lib = require('vircle-lib');
+  lib = require('bitcore-lib-vcl');
 
   selectCoins(
     recipients: Array<{ amount: number }>,

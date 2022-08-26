@@ -5,9 +5,11 @@ if [ $# -eq 0 ]; then
   exit -1
 fi
 
-USER_PATH=/mnt/ethereum
-MODULE_PATH=$USER_PATH/bitcore/packages
-NODE_PATH=$USER_PATH/.nvm/versions/node/v10.5.0/bin
+if [ "x${BITCORE_PATH}" == "x" ]; then
+  BITCORE_PATH=/root/bitcore
+fi
+
+MODULE_PATH=$BITCORE_PATH/packages
 
 cd $MODULE_PATH/bitcore-wallet-service
 
@@ -15,9 +17,13 @@ stop_program ()
 {
   pidfile=$1
 
-  echo "Stopping Process - $pidfile. PID=$(cat $pidfile)"
-  kill -9 $(cat $pidfile)
-  rm $pidfile
+  if [ -f $pidfile ]; then
+    echo "Stopping Process - $pidfile. PID=$(cat $pidfile)"
+    kill -9 $(cat $pidfile)
+    rm $pidfile
+  else
+    echo "Stopping Process - $pidfile."
+  fi
   
 }
 

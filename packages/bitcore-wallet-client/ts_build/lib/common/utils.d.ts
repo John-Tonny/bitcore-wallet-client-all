@@ -4,10 +4,10 @@ export declare class Utils {
     static decryptMessage(cyphertextJson: any, encryptingKey: any): any;
     static decryptMessageNoThrow(cyphertextJson: any, encryptingKey: any): any;
     static isJsonString(str: any): any;
-    static hashMessage(text: any): any;
-    static signMessage(message: any, privKey: any): any;
-    static verifyMessage(message: Array<string> | string, signature: any, pubKey: any): any;
-    static privateKeyToAESKey(privKey: any): any;
+    static hashMessage(text: any, coin: any): any;
+    static signMessage(message: any, privKey: any, coin: any): any;
+    static verifyMessage(message: Array<string> | string, signature: any, pubKey: any, coin: any): any;
+    static privateKeyToAESKey(privKey: any, coin: any): any;
     static getCopayerHash(name: any, xPubKey: any, requestPubKey: any): string;
     static getProposalHash(proposalHeader: any): any;
     static getOldHash(toAddress: any, amount: any, message: any, payProUrl: any): string;
@@ -16,16 +16,16 @@ export declare class Utils {
         addressIndex: string;
         isChange: boolean;
     };
-    static deriveAddress(scriptType: any, publicKeyRing: any, path: any, m: any, network: any, coin: any): {
+    static deriveAddress(scriptType: any, publicKeyRing: any, path: any, m: any, network: any, coin: any, escrowInputs?: any): {
         address: any;
         path: any;
         publicKeys: any[];
     };
     static xPubToCopayerId(coin: any, xpub: any): any;
-    static signRequestPubKey(requestPubKey: any, xPrivKey: any): any;
-    static verifyRequestPubKey(requestPubKey: any, signature: any, xPubKey: any): any;
+    static signRequestPubKey(requestPubKey: any, xPrivKey: any, coin: any): any;
+    static verifyRequestPubKey(requestPubKey: any, signature: any, xPubKey: any, coin: any): any;
     static formatAmount(satoshis: any, unit: any, opts?: any): any;
     static buildTx(txp: any): any;
-    static isPrivateKey(privKey: any): boolean;
+    static isPrivateKey(privKey: any, coin: any): boolean;
 }
 //# sourceMappingURL=utils.d.ts.map

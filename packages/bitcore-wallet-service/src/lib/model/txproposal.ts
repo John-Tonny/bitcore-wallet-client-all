@@ -1,14 +1,13 @@
-import { Transactions } from 'crypto-wallet-core';
+import { forever } from 'async';
+import { BitcoreLibVcl, Transactions } from 'crypto-wallet-core';
 import _ from 'lodash';
 import { ChainService } from '../chain/index';
+import logger from '../logger';
 import { TxProposalLegacy } from './txproposal_legacy';
 import { TxProposalAction } from './txproposalaction';
 
 const $ = require('preconditions').singleton();
 const Uuid = require('uuid');
-const log = require('npmlog');
-log.debug = log.verbose;
-log.disableColor();
 
 const Common = require('../common');
 const Constants = Common.Constants,
@@ -24,11 +23,13 @@ export interface ITxProposal {
   walletId: string;
   creatorId: string;
   coin: string;
+  chain: string;
   network: string;
   message: string;
   payProUrl: string;
   from: string;
   changeAddress: string;
+  escrowAddress: string;
   inputs: any[];
   outputs: Array<{
     amount: number;
@@ -62,17 +63,30 @@ export interface ITxProposal {
   signingMethod: string;
   lowFees: boolean;
   nonce?: number;
+  // john 20220219
+  txType?: number;
+  maxFeePerGas?: number;
+  maxPriorityFeePerGas?: number;
+  accessList?: [];
   gasPrice?: number;
   gasLimit?: number; // Backward compatibility for BWC <= 8.9.0
   data?: string; // Backward compatibility for BWC <= 8.9.0
   tokenAddress?: string;
+  multisigContractAddress?: string;
   destinationTag?: string;
   invoiceID?: string;
   lockUntilBlockHeight?: number;
+  instantAcceptanceEscrow?: number;
+  isTokenSwap?: boolean;
+  enableRBF?: boolean;
+  replaceTxByFee?: boolean;
   atomicswap?: any;
   atomicswapAddr?: string;
-  atomicswapSecretHash?;
-  string;
+  atomicswapSecretHash?: string;
+  txExtends?: any; // john 20220219
+  tokenId?: number; // john 20220423
+  asset?: any; // john 20220709
+  relay?: any; // john 20220709
 }
 
 export class TxProposal {
@@ -84,11 +98,13 @@ export class TxProposal {
   walletId: string;
   creatorId: string;
   coin: string;
+  chain: string;
   network: string;
   message: string;
   payProUrl: string;
   from: string;
   changeAddress: any;
+  escrowAddress: any;
   inputs: any[];
   outputs: Array<{
     amount: number;
@@ -123,16 +139,31 @@ export class TxProposal {
   signingMethod: string;
   raw?: Array<string> | string;
   nonce?: number;
+  // john 20220219
+  txType?: number;
+  maxFeePerGas?: number;
+  maxPriorityFeePerGas?: number;
+  accessList?: [];
   gasPrice?: number;
   gasLimit?: number; // Backward compatibility for BWC <= 8.9.0
   data?: string; // Backward compatibility for BWC <= 8.9.0
   tokenAddress?: string;
+  multisigContractAddress?: string;
+  multisigTxId?: string;
   destinationTag?: string;
   invoiceID?: string;
   lockUntilBlockHeight?: number;
+  instantAcceptanceEscrow?: number;
+  isTokenSwap?: boolean;
+  enableRBF?: boolean;
+  replaceTxByFee?: boolean;
   atomicswap?: any; // john 20210409
   atomicswapAddr?: string;
   atomicswapSecretHash?: string;
+  txExtends?: any; // john 20220219
+  tokenId?: string; // john 20220423
+  asset?: any; // john 20220709
+  relay?: any; // john 20220709
 
   static create(opts) {
     opts = opts || {};
@@ -149,7 +180,7 @@ export class TxProposal {
 
     // x.version = opts.version || 5; // DISABLED 2020-04-07
     x.version = opts.version || 3;
-    $.checkState(x.version <= 3, 'txp version 4 not allowed yet');
+    $.checkState(x.version <= 3, 'Failed state: txp version 4 not allowed yet at <create()>');
 
     const now = Date.now();
     x.createdOn = Math.floor(now / 1000);
@@ -157,15 +188,22 @@ export class TxProposal {
     x.walletId = opts.walletId;
     x.creatorId = opts.creatorId;
     x.coin = opts.coin;
+    x.chain = opts.chain;
     x.network = opts.network;
     x.signingMethod = opts.signingMethod;
     x.message = opts.message;
     x.payProUrl = opts.payProUrl;
     x.changeAddress = opts.changeAddress;
+    x.escrowAddress = opts.escrowAddress;
+    x.instantAcceptanceEscrow = opts.instantAcceptanceEscrow;
     x.outputs = _.map(opts.outputs, output => {
       return _.pick(output, ['amount', 'toAddress', 'message', 'data', 'gasLimit', 'script']);
     });
-    x.outputOrder = _.range(x.outputs.length + 1);
+    let numOutputs = x.outputs.length + 1;
+    if (x.instantAcceptanceEscrow) {
+      numOutputs = numOutputs + 1;
+    }
+    x.outputOrder = _.range(numOutputs);
     if (!opts.noShuffleOutputs) {
       x.outputOrder = _.shuffle(x.outputOrder);
     }
@@ -179,7 +217,10 @@ export class TxProposal {
     x.excludeUnconfirmedUtxos = opts.excludeUnconfirmedUtxos;
 
     x.addressType = opts.addressType || (x.walletN > 1 ? Constants.SCRIPT_TYPES.P2SH : Constants.SCRIPT_TYPES.P2PKH);
-    $.checkState(Utils.checkValueInCollection(x.addressType, Constants.SCRIPT_TYPES));
+    $.checkState(
+      Utils.checkValueInCollection(x.addressType, Constants.SCRIPT_TYPES),
+      'Failed state: addressType not in ScriptTypes at <create()>'
+    );
 
     x.customData = opts.customData;
 
@@ -193,6 +234,9 @@ export class TxProposal {
     }
 
     // Coin specific features
+    // BTC
+    x.enableRBF = opts.enableRBF;
+    x.replaceTxByFee = opts.replaceTxByFee;
 
     // ETH
     x.gasPrice = opts.gasPrice;
@@ -201,6 +245,8 @@ export class TxProposal {
     x.gasLimit = opts.gasLimit; // Backward compatibility for BWC <= 8.9.0
     x.data = opts.data; // Backward compatibility for BWC <= 8.9.0
     x.tokenAddress = opts.tokenAddress;
+    x.isTokenSwap = opts.isTokenSwap;
+    x.multisigContractAddress = opts.multisigContractAddress;
 
     // XRP
     x.destinationTag = opts.destinationTag;
@@ -210,6 +256,20 @@ export class TxProposal {
     x.atomicswap = opts.atomicswap;
     x.atomicswapAddr = opts.atomicswapAddr;
     x.atomicswapSecretHash = opts.atomicswapSecretHash;
+
+    x.txExtends = opts.txExtends;
+
+    x.txType = opts.txType;
+    x.maxFeePerGas = opts.maxFeePerGas;
+    x.maxPriorityFeePerGas = opts.maxPriorityFeePerGas;
+    x.accessList = opts.accessList;
+
+    // john 20220423
+    x.tokenId = opts.tokenId;
+
+    // john 20220709
+    x.asset = opts.asset;
+    x.relay = opts.relay;
 
     return x;
   }
@@ -227,12 +287,15 @@ export class TxProposal {
     x.walletId = obj.walletId;
     x.creatorId = obj.creatorId;
     x.coin = obj.coin || Defaults.COIN;
+    x.chain = obj.chain ? obj.chain : ChainService.getChain(x.coin);
     x.network = obj.network;
     x.outputs = obj.outputs;
     x.amount = obj.amount;
     x.message = obj.message;
     x.payProUrl = obj.payProUrl;
     x.changeAddress = obj.changeAddress;
+    x.escrowAddress = obj.escrowAddress;
+    x.instantAcceptanceEscrow = obj.instantAcceptanceEscrow;
     x.inputs = obj.inputs;
     x.walletM = obj.walletM;
     x.walletN = obj.walletN;
@@ -260,6 +323,10 @@ export class TxProposal {
 
     x.lockUntilBlockHeight = obj.lockUntilBlockHeight;
 
+    // BTC
+    x.enableRBF = obj.enableRBF;
+    x.replaceTxByFee = obj.replaceTxByFee;
+
     // ETH
     x.gasPrice = obj.gasPrice;
     x.from = obj.from;
@@ -267,6 +334,9 @@ export class TxProposal {
     x.gasLimit = obj.gasLimit; // Backward compatibility for BWC <= 8.9.0
     x.data = obj.data; // Backward compatibility for BWC <= 8.9.0
     x.tokenAddress = obj.tokenAddress;
+    x.isTokenSwap = obj.isTokenSwap;
+    x.multisigContractAddress = obj.multisigContractAddress;
+    x.multisigTxId = obj.multisigTxId;
 
     // XRP
     x.destinationTag = obj.destinationTag;
@@ -280,6 +350,20 @@ export class TxProposal {
     x.atomicswap = obj.atomicswap;
     x.atomicswapAddr = obj.atomicswapAddr;
     x.atomicswapSecretHash = obj.atomicswapSecretHash;
+
+    x.txExtends = obj.txExtends; // john 20220219
+
+    x.txType = obj.txType;
+    x.maxFeePerGas = obj.maxFeePerGas;
+    x.maxPriorityFeePerGas = obj.maxPriorityFeePerGas;
+    x.accessList = obj.accessList;
+
+    // john 20220423
+    x.tokenId = obj.tokenId;
+
+    // john 20220709
+    x.asset = obj.asset;
+    x.relay = obj.relay;
 
     return x;
   }
@@ -318,10 +402,20 @@ export class TxProposal {
     });
   }
 
+  // john
   getRawTx() {
     const t = ChainService.getBitcoreTx(this);
     if (this.atomicswap && this.atomicswap.isAtomicSwap && this.atomicswap.redeem != undefined) {
       return t.uncheckedAtomicSwapSerialize();
+    }
+    if (this.txExtends && this.txExtends.version && this.txExtends.outScripts) {
+      t.setVersion(this.txExtends.version);
+      for (var i = 0; i < t.outputs.length; i++) {
+        if (t.outputs[i]._satoshis == 0) {
+          t.outputs[i].setScript(this.txExtends.outScripts);
+          break;
+        }
+      }
     }
     return t.uncheckedSerialize();
   }
@@ -329,6 +423,17 @@ export class TxProposal {
   // john
   getRawTx1() {
     const t = ChainService.getBitcoreTx(this);
+    if (this.txExtends && this.txExtends.version && this.txExtends.outScripts) {
+      t.setVersion(this.txExtends.version);
+      for (var i = 0; i < t.outputs.length; i++) {
+        if (t.outputs[i]._satoshis == 0) {
+          t.outputs[i].setScript(this.txExtends.outScripts);
+          break;
+        }
+      }
+    } else if (this.asset && this.asset.version) {
+      t.setVersion(this.asset.version); // john 20220709
+    }
     return t.uncheckedSerialize1();
   }
 
@@ -336,6 +441,11 @@ export class TxProposal {
   getRawAtomicswapTx() {
     const t = ChainService.getBitcoreTx(this);
     return t.uncheckedAtomicSwapSerialize();
+  }
+
+  // john
+  getERC20ManagerContract(opts) {
+    return ChainService.getERC20ManagerContract(this, opts);
   }
 
   /**
@@ -398,8 +508,12 @@ export class TxProposal {
     try {
       // Tests signatures are OK
       const tx = ChainService.getBitcoreTx(this);
+      // john 20220709
+      if (this.asset && this.asset.version) {
+        tx.setVersion(this.asset.version);
+      }
       ChainService.addSignaturesToBitcoreTx(
-        this.coin,
+        this.chain,
         tx,
         this.inputs,
         this.inputPaths,
@@ -410,17 +524,19 @@ export class TxProposal {
       this.addAction(copayerId, 'accept', null, signatures, xpub);
 
       if (this.status == 'accepted') {
-        if (this.atomicswap && this.atomicswap.isAtomicSwap && this.atomicswap.redeem != undefined) {
-          this.raw = tx.uncheckedAtomicSwapSerialize();
+        // john 20220219
+        var rawTx = this.getRawTx();
+        if (_.isArray(rawTx)) {
+          this.raw = rawTx;
         } else {
-          this.raw = tx.uncheckedSerialize();
+          this.raw = [rawTx];
         }
         this.txid = tx.id;
       }
 
       return true;
     } catch (e) {
-      log.debug(e);
+      logger.debug(e);
       return false;
     }
   }
@@ -452,7 +568,7 @@ export class TxProposal {
   }
 
   setBroadcasted() {
-    $.checkState(this.txid);
+    $.checkState(this.txid, 'Failed state: this.txid at <setBroadcasted()>');
     this.status = 'broadcasted';
     this.broadcastedOn = Math.floor(Date.now() / 1000);
   }

@@ -20,6 +20,7 @@ export declare class Credentials {
     addressType: string;
     keyId: string;
     token?: string;
+    multisigEthInfo?: any;
     externalSource?: boolean;
     constructor();
     static fromDerivedKey(opts: any): any;
@@ -27,6 +28,12 @@ export declare class Credentials {
         name: string;
         symbol: string;
         address: string;
+    }): any;
+    getMultisigEthCredentials(multisigEthInfo: {
+        multisigContractAddress: string;
+        walletName: string;
+        n: string;
+        m: string;
     }): any;
     getRootPath(): any;
     static fromObj(obj: any): any;

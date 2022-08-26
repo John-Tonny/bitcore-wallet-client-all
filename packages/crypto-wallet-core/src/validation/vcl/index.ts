@@ -1,5 +1,5 @@
 import { IValidation } from '..';
-const Vircle = require('vircle-lib');
+const Vircle = require('bitcore-lib-vcl');
 
 export class VclValidation implements IValidation {
   validateAddress(network: string, address: string): boolean {

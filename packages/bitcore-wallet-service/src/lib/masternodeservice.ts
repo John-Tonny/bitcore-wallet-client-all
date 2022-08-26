@@ -166,37 +166,39 @@ export class MasternodeService {
     _.forEach(_.keys(masternodes), function(key) {
       let masternodeStatus: {
         txid?: string;
+        masternodePrivKey?: string;
+        masternodePubKey?: string;
         coin?: string;
         network?: string;
         address?: string;
         payee?: string;
         status?: string;
-        protocol?: number;
-        daemonversion?: string;
-        sentinelversion?: string;
-        sentinelstate?: string;
-        lastseen?: number;
-        activeseconds?: number;
-        lastpaidtime?: number;
-        lastpaidblock?: number;
-        pingretries?: number;
+        proTxHash?: string;
+        collateralBlock?: number;
+        lastpaidTime?: number;
+        lastpaidBlock?: number;
+        ownerAddr?: string;
+        voteAddr?: string;
+        payAddr?: string;
+        reward?: number;
       } = {};
 
       masternodeStatus.coin = coin;
       masternodeStatus.network = network;
       masternodeStatus.txid = key;
       masternodeStatus.address = masternodes[key].address;
-      masternodeStatus.payee = masternodes[key].payee;
+      masternodeStatus.payAddr = masternodes[key].payee;
       masternodeStatus.status = masternodes[key].status;
-      masternodeStatus.protocol = masternodes[key].protocol;
-      masternodeStatus.daemonversion = masternodes[key].daemonversion;
-      masternodeStatus.sentinelversion = masternodes[key].sentinelversion;
-      masternodeStatus.sentinelstate = masternodes[key].sentinelstate;
-      masternodeStatus.lastseen = masternodes[key].lastseen;
-      masternodeStatus.activeseconds = masternodes[key].activeseconds;
-      masternodeStatus.lastpaidtime = masternodes[key].lastpaidtime;
-      masternodeStatus.lastpaidblock = masternodes[key].lastpaidblock;
-      masternodeStatus.pingretries = masternodes[key].pingretries;
+      masternodeStatus.proTxHash = masternodes[key].proTxHash;
+
+      masternodeStatus.collateralBlock = masternodes[key].collateralblock;
+      masternodeStatus.lastpaidTime = masternodes[key].lastpaidtime;
+      masternodeStatus.lastpaidBlock = masternodes[key].lastpaidblock;
+      masternodeStatus.ownerAddr = masternodes[key].owneraddress;
+      masternodeStatus.voteAddr = masternodes[key].votingaddress;
+      masternodeStatus.payee = masternodes[key].collateraladdress;
+      masternodeStatus.masternodePubKey = masternodes[key].pubkeyoperator;
+
       let imasternode = Masternodes.create(masternodeStatus);
       imasternodes.push(imasternode);
     });
@@ -213,23 +215,23 @@ export class MasternodeService {
               } else {
                 if (oldStatus != imasternode.status) {
                   const args = {
-                    createdOn: imasternode.createdOn,
+                    updateOn: imasternode.updatedOn,
                     txid: imasternode.txid,
-                    masternodeKey: res.masternodeKey,
+                    masternodePrivKey: res.masternodePrivKey,
+                    masternodePubKey: res.masternodePubKey,
                     coin: res.coin,
                     network: res.network,
                     address: imasternode.address,
-                    payee: res.payee,
+                    payee: imasternode.payee,
                     status: imasternode.status,
-                    protocol: imasternode.protocol,
-                    daemonversion: imasternode.daemonversion,
-                    sentinelversion: imasternode.sentinelversion,
-                    sentinelstate: imasternode.sentinelstate,
-                    lastseen: imasternode.lastseen,
-                    activeseconds: imasternode.activeseconds,
-                    lastpaidtime: imasternode.lastpaidtime,
-                    lastpaidblock: imasternode.lastpaidblock,
-                    pingretries: imasternode.pingretries
+                    proTxHash: imasternode.proTxHash,
+                    collateralBlock: imasternode.collateralBlock,
+                    lastpaidTime: imasternode.lastpaidTime,
+                    lastpaidBlock: imasternode.lastpaidBlock,
+                    ownerAddr: imasternode.ownerAddr,
+                    voteAddr: imasternode.voteAddr,
+                    payAddr: imasternode.payAddr,
+                    reward: res.reward
                   };
                   const notification = Notification.create({
                     type: 'UpdateMasternode',

@@ -1,28 +1,41 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var _ = __importStar(require("lodash"));
-var common_1 = require("./common");
+exports.Verifier = void 0;
+const _ = __importStar(require("lodash"));
+const common_1 = require("./common");
 var $ = require('preconditions').singleton();
-var crypto_wallet_core_1 = require("crypto-wallet-core");
-var Bitcore = crypto_wallet_core_1.VircleLib;
+const crypto_wallet_core_1 = require("crypto-wallet-core");
+var Bitcore = crypto_wallet_core_1.BitcoreLibVcl;
+var BCHAddress = crypto_wallet_core_1.BitcoreLibCash.Address;
 var log = require('./log');
-var Verifier = (function () {
-    function Verifier() {
+class Verifier {
+    static checkAddress(credentials, address, escrowInputs) {
+        $.checkState(credentials.isComplete(), 'Failed state: credentials at <checkAddress>');
+        var local = common_1.Utils.deriveAddress(address.type || credentials.addressType, credentials.publicKeyRing, address.path, credentials.m, credentials.network, credentials.coin, escrowInputs);
+        return (local.address == address.address &&
+            _.difference(local.publicKeys, address.publicKeys).length === 0);
     }
-    Verifier.checkAddress = function (credentials, address) {
-        $.checkState(credentials.isComplete());
-        var local = common_1.Utils.deriveAddress(address.type || credentials.addressType, credentials.publicKeyRing, address.path, credentials.m, credentials.network, credentials.coin);
-        return local.address == address.address && _.difference(local.publicKeys, address.publicKeys).length === 0;
-    };
-    Verifier.checkCopayers = function (credentials, copayers) {
-        $.checkState(credentials.walletPrivKey);
+    static checkCopayers(credentials, copayers) {
+        $.checkState(credentials.walletPrivKey, 'Failed state: credentials at <checkCopayers>');
         var walletPubKey = Bitcore.PrivateKey.fromString(credentials.walletPrivKey)
             .toPublicKey()
             .toString();
@@ -32,7 +45,7 @@ var Verifier = (function () {
         }
         var uniq = [];
         var error;
-        _.each(copayers, function (copayer) {
+        _.each(copayers, copayer => {
             if (error)
                 return;
             if (uniq[copayers.xPubKey]++) {
@@ -48,7 +61,7 @@ var Verifier = (function () {
             }
             else {
                 var hash = common_1.Utils.getCopayerHash(copayer.encryptedName || copayer.name, copayer.xPubKey, copayer.requestPubKey);
-                if (!common_1.Utils.verifyMessage(hash, copayer.signature, walletPubKey)) {
+                if (!common_1.Utils.verifyMessage(hash, copayer.signature, walletPubKey, credentials.coin)) {
                     log.error('Invalid signatures in server response');
                     error = true;
                 }
@@ -61,9 +74,9 @@ var Verifier = (function () {
             return false;
         }
         return true;
-    };
-    Verifier.checkProposalCreation = function (args, txp, encryptingKey) {
-        var strEqual = function (str1, str2) {
+    }
+    static checkProposalCreation(args, txp, encryptingKey) {
+        var strEqual = (str1, str2) => {
             return (!str1 && !str2) || str1 === str2;
         };
         if (txp.outputs.length != args.outputs.length)
@@ -71,7 +84,9 @@ var Verifier = (function () {
         for (var i = 0; i < txp.outputs.length; i++) {
             var o1 = txp.outputs[i];
             var o2 = args.outputs[i];
-            if (!txp.atomicswap || txp.atomicswap.isAtomicSwap) {
+            if (txp.atomicswap && txp.atomicswap.isAtomicSwap) {
+            }
+            else {
                 if (!strEqual(o1.toAddress, o2.toAddress))
                     return false;
                 if (!strEqual(o1.script, o2.script))
@@ -110,22 +125,23 @@ var Verifier = (function () {
         }
         if (!strEqual(txp.message, decryptedMessage))
             return false;
-        if ((args.customData || txp.customData) && !_.isEqual(txp.customData, args.customData))
+        if ((args.customData || txp.customData) &&
+            !_.isEqual(txp.customData, args.customData))
             return false;
         return true;
-    };
-    Verifier.checkTxProposalSignature = function (credentials, txp) {
+    }
+    static checkTxProposalSignature(credentials, txp) {
         $.checkArgument(txp.creatorId);
-        $.checkState(credentials.isComplete());
-        var creatorKeys = _.find(credentials.publicKeyRing, function (item) {
-            if (common_1.Utils.xPubToCopayerId(txp.coin || 'vcl', item.xPubKey) === txp.creatorId)
+        $.checkState(credentials.isComplete(), 'Failed state: credentials at checkTxProposalSignature');
+        var creatorKeys = _.find(credentials.publicKeyRing, item => {
+            if (common_1.Utils.xPubToCopayerId(txp.chain ? txp.chain : txp.coin ? txp.coin : 'vcl', item.xPubKey) === txp.creatorId)
                 return true;
         });
         if (!creatorKeys)
             return false;
         var creatorSigningPubKey;
         if (txp.proposalSignaturePubKey) {
-            if (!common_1.Utils.verifyRequestPubKey(txp.proposalSignaturePubKey, txp.proposalSignaturePubKeySig, creatorKeys.xPubKey))
+            if (!common_1.Utils.verifyRequestPubKey(txp.proposalSignaturePubKey, txp.proposalSignaturePubKeySig, creatorKeys.xPubKey, txp.coin))
                 return false;
             creatorSigningPubKey = txp.proposalSignaturePubKey;
         }
@@ -137,7 +153,9 @@ var Verifier = (function () {
         var hash;
         if (parseInt(txp.version) >= 3) {
             var t = common_1.Utils.buildTx(txp);
-            if (txp.atomicswap && txp.atomicswap.isAtomicSwap && txp.atomicswap.redeem != undefined) {
+            if (txp.atomicswap &&
+                txp.atomicswap.isAtomicSwap &&
+                txp.atomicswap.redeem != undefined) {
                 t.inputs[0].output.setScript(txp.atomicswap.contract);
                 if (!txp.atomicswap.redeem) {
                     t.lockUntilDate(txp.atomicswap.lockTime);
@@ -146,24 +164,42 @@ var Verifier = (function () {
                     t.nLockTime = txp.atomicswap.lockTime;
                 }
             }
-            hash = t.uncheckedSerialize1();
+            if (txp.txExtends && txp.txExtends.version && txp.txExtends.outScripts) {
+                t.setVersion(txp.txExtends.version);
+                for (var i = 0; i < t.outputs.length; i++) {
+                    if (t.outputs[i]._satoshis == 0) {
+                        t.outputs[i].setScript(txp.txExtends.outScripts);
+                        break;
+                    }
+                }
+            }
+            if (txp.coin.toLowerCase() == 'vcl') {
+                hash = t.uncheckedSerialize1();
+            }
+            else {
+                hash = t.uncheckedSerialize();
+            }
         }
         else {
             throw new Error('Transaction proposal not supported');
         }
         log.debug('Regenerating & verifying tx proposal hash -> Hash: ', hash, ' Signature: ', txp.proposalSignature);
-        if (!common_1.Utils.verifyMessage(hash, txp.proposalSignature, creatorSigningPubKey))
+        if (!common_1.Utils.verifyMessage(hash, txp.proposalSignature, creatorSigningPubKey, txp.coin))
             return false;
         if (common_1.Constants.UTXO_COINS.includes(txp.coin)) {
-            if (txp.changeAddress != undefined) {
-                if ((!txp.atomicswap || txp.atomicswap.isAtomicSwap) && !this.checkAddress(credentials, txp.changeAddress)) {
-                    return false;
-                }
+            if ((!txp.atomicswap || txp.atomicswap.isAtomicSwap) &&
+                txp.changeAddress &&
+                !this.checkAddress(credentials, txp.changeAddress)) {
+                return false;
+            }
+            if (txp.escrowAddress &&
+                !this.checkAddress(credentials, txp.escrowAddress, txp.inputs)) {
+                return false;
             }
         }
         return true;
-    };
-    Verifier.checkPaypro = function (txp, payproOpts) {
+    }
+    static checkPaypro(txp, payproOpts) {
         var toAddress, amount, feeRate;
         if (parseInt(txp.version) >= 3) {
             toAddress = txp.outputs[0].toAddress;
@@ -178,19 +214,23 @@ var Verifier = (function () {
         }
         if (amount != _.sumBy(payproOpts.instructions, 'amount'))
             return false;
-        if ((txp.coin == 'btc' || txp.coin == 'vcl') && toAddress != payproOpts.instructions[0].toAddress)
+        if ((txp.coin == 'btc' || txp.coin == 'vcl') &&
+            toAddress != payproOpts.instructions[0].toAddress)
+            return false;
+        if (txp.coin == 'bch' &&
+            new BCHAddress(toAddress).toString() !=
+                new BCHAddress(payproOpts.instructions[0].toAddress).toString())
             return false;
         return true;
-    };
-    Verifier.checkTxProposal = function (credentials, txp, opts) {
+    }
+    static checkTxProposal(credentials, txp, opts) {
         opts = opts || {};
         if (!this.checkTxProposalSignature(credentials, txp))
             return false;
         if (opts.paypro && !this.checkPaypro(txp, opts.paypro))
             return false;
         return true;
-    };
-    return Verifier;
-}());
+    }
+}
 exports.Verifier = Verifier;
 //# sourceMappingURL=verifier.js.map

@@ -1,32 +1,45 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var _ = __importStar(require("lodash"));
-var common_1 = require("./common");
-var request = require('superagent');
-var async = require('async');
-var Package = require('../../package.json');
+exports.Request = void 0;
+const _ = __importStar(require("lodash"));
+const common_1 = require("./common");
+const request = require('superagent');
+const async = require('async');
+const Package = require('../../package.json');
 var log = require('./log');
-var util = require('util');
+const util = require('util');
 var Errors = require('./errors');
-var Request = (function () {
-    function Request(url, opts) {
+class Request {
+    constructor(url, opts) {
         this.baseUrl = url;
         this.r = opts.r || request;
         this.supportStaffWalletId = opts.supportStaffWalletId;
         this.session = null;
         this.credentials = null;
     }
-    Request.prototype.setCredentials = function (credentials) {
+    setCredentials(credentials) {
         this.credentials = credentials;
-    };
-    Request.prototype.getHeaders = function (method, url, args) {
+    }
+    getHeaders(method, url, args) {
         var headers = {
             'x-client-version': 'bwc-' + Package.version
         };
@@ -34,12 +47,12 @@ var Request = (function () {
             headers['x-wallet-id'] = this.supportStaffWalletId;
         }
         return headers;
-    };
-    Request._signRequest = function (method, url, args, privKey) {
+    }
+    static _signRequest(method, url, args, privKey, coin) {
         var message = [method.toLowerCase(), url, JSON.stringify(args)].join('|');
-        return common_1.Utils.signMessage(message, privKey);
-    };
-    Request.prototype.doRequest = function (method, url, args, useSession, cb) {
+        return common_1.Utils.signMessage(message, privKey, coin);
+    }
+    doRequest(method, url, args, useSession, cb) {
         var headers = this.getHeaders(method, url, args);
         if (this.credentials) {
             headers['x-identity'] = this.credentials.copayerId;
@@ -51,14 +64,14 @@ var Request = (function () {
                 var key = args._requestPrivKey || this.credentials.requestPrivKey;
                 if (key) {
                     delete args['_requestPrivKey'];
-                    reqSignature = Request._signRequest(method, url, args, key);
+                    reqSignature = Request._signRequest(method, url, args, key, this.credentials.coin);
                 }
                 headers['x-signature'] = reqSignature;
             }
         }
         var r = this.r[method](this.baseUrl + url);
         r.accept('json');
-        _.each(headers, function (v, k) {
+        _.each(headers, (v, k) => {
             if (v)
                 r.set(k, v);
         });
@@ -71,7 +84,7 @@ var Request = (function () {
             }
         }
         r.timeout(this.timeout);
-        r.end(function (err, res) {
+        r.end((err, res) => {
             if (!res) {
                 return cb(new Errors.CONNECTION_ERROR());
             }
@@ -95,8 +108,8 @@ var Request = (function () {
                 return cb(new Errors.ECONNRESET_ERROR(JSON.parse(res.body)));
             return cb(null, res.body, res.header);
         });
-    };
-    Request._parseError = function (body) {
+    }
+    static _parseError(body) {
         if (!body)
             return;
         if (_.isString(body)) {
@@ -115,9 +128,15 @@ var Request = (function () {
                 ret = new Errors[body.code]();
                 if (body.message)
                     ret.message = body.message;
+                if (body.messageData)
+                    ret.messageData = body.messageData;
             }
             else {
-                ret = new Error(body.code + ': ' + (_.isObject(body.message) ? JSON.stringify(body.message) : body.message));
+                ret = new Error(body.code +
+                    ': ' +
+                    (_.isObject(body.message)
+                        ? JSON.stringify(body.message)
+                        : body.message));
             }
         }
         else {
@@ -125,68 +144,65 @@ var Request = (function () {
         }
         log.error(ret);
         return ret;
-    };
-    Request.prototype.post = function (url, args, cb) {
+    }
+    post(url, args, cb) {
         args = args || {};
         return this.doRequest('post', url, args, false, cb);
-    };
-    Request.prototype.put = function (url, args, cb) {
+    }
+    put(url, args, cb) {
         args = args || {};
         return this.doRequest('put', url, args, false, cb);
-    };
-    Request.prototype.get = function (url, cb) {
+    }
+    get(url, cb) {
         url += url.indexOf('?') > 0 ? '&' : '?';
         url += 'r=' + _.random(10000, 99999);
         return this.doRequest('get', url, {}, false, cb);
-    };
-    Request.prototype.getWithLogin = function (url, cb) {
+    }
+    getWithLogin(url, cb) {
         url += url.indexOf('?') > 0 ? '&' : '?';
         url += 'r=' + _.random(10000, 99999);
         return this.doRequestWithLogin('get', url, {}, cb);
-    };
-    Request.prototype._login = function (cb) {
+    }
+    _login(cb) {
         this.post('/v1/login', {}, cb);
-    };
-    Request.prototype.logout = function (cb) {
+    }
+    logout(cb) {
         this.post('/v1/logout', {}, cb);
-    };
-    Request.prototype.doRequestWithLogin = function (method, url, args, cb) {
-        var _this = this;
+    }
+    doRequestWithLogin(method, url, args, cb) {
         async.waterfall([
-            function (next) {
-                if (_this.session)
+            next => {
+                if (this.session)
                     return next();
-                _this.doLogin(next);
+                this.doLogin(next);
             },
-            function (next) {
-                _this.doRequest(method, url, args, true, function (err, body, header) {
+            next => {
+                this.doRequest(method, url, args, true, (err, body, header) => {
                     if (err && err instanceof Errors.NOT_AUTHORIZED) {
-                        _this.doLogin(function (err) {
+                        this.doLogin(err => {
                             if (err)
                                 return next(err);
-                            return _this.doRequest(method, url, args, true, next);
+                            return this.doRequest(method, url, args, true, next);
                         });
                     }
                     next(null, body, header);
                 });
             }
         ], cb);
-    };
-    Request.prototype.doLogin = function (cb) {
-        var _this = this;
-        this._login(function (err, s) {
+    }
+    doLogin(cb) {
+        this._login((err, s) => {
             if (err)
                 return cb(err);
             if (!s)
                 return cb(new Errors.NOT_AUTHORIZED());
-            _this.session = s;
+            this.session = s;
             cb();
         });
-    };
-    Request.prototype.delete = function (url, cb) {
+    }
+    delete(url, cb) {
         return this.doRequest('delete', url, {}, false, cb);
-    };
-    return Request;
-}());
+    }
+}
 exports.Request = Request;
 //# sourceMappingURL=request.js.map

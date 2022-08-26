@@ -1,6 +1,14 @@
 'use strict';
 
-import { Deriver, Transactions, VircleLib } from 'crypto-wallet-core';
+import {
+  BitcoreLib,
+  BitcoreLibCash,
+  BitcoreLibDoge,
+  BitcoreLibLtc,
+  BitcoreLibVcl,
+  Deriver,
+  Transactions
+} from 'crypto-wallet-core';
 
 import * as _ from 'lodash';
 import { Constants } from './constants';
@@ -10,14 +18,15 @@ const $ = require('preconditions').singleton();
 const sjcl = require('sjcl');
 const Stringify = require('json-stable-stringify');
 
-// john
-const Bitcore = VircleLib;
 const Bitcore_ = {
-  vcl: VircleLib
+  btc: BitcoreLib,
+  bch: BitcoreLibCash,
+  eth: BitcoreLib,
+  xrp: BitcoreLib,
+  doge: BitcoreLibDoge,
+  ltc: BitcoreLibLtc,
+  vcl: BitcoreLibVcl
 };
-const PrivateKey = Bitcore.PrivateKey;
-const PublicKey = Bitcore.PublicKey;
-const crypto = Bitcore.crypto;
 
 let SJCL = {};
 
@@ -26,7 +35,12 @@ const MAX_DECIMAL_ANY_COIN = 18; // more that 14 gives rounding errors
 export class Utils {
   static getChain(coin: string): string {
     let normalizedChain = coin.toUpperCase();
-    if (Constants.ERC20.includes(coin)) {
+
+    // TODO: If in the future we add a new chain that supports custom tokens, check this condition
+    if (
+      Constants.ERC20.includes(coin.toLowerCase()) ||
+      !Constants.COINS.includes(coin.toLowerCase())
+    ) {
       normalizedChain = 'ETH';
     }
     return normalizedChain;
@@ -86,45 +100,56 @@ export class Utils {
   }
   /* TODO: It would be nice to be compatible with bitcoind signmessage. How
    * the hash is calculated there? */
-  static hashMessage(text) {
+  static hashMessage(text, coin) {
     $.checkArgument(text);
+    coin = coin || 'vcl';
     var buf = Buffer.from(text);
-    var ret = crypto.Hash.sha256sha256(buf);
-    ret = new Bitcore.encoding.BufferReader(ret).readReverse();
+    var ret = Bitcore_[coin].crypto.Hash.sha256sha256(buf);
+    ret = new Bitcore_[coin].encoding.BufferReader(ret).readReverse();
     return ret;
   }
 
-  static signMessage(message, privKey) {
+  static signMessage(message, privKey, coin) {
     $.checkArgument(message);
-    var priv = new PrivateKey(privKey);
+    coin = coin || 'vcl';
+    var priv = new Bitcore_[coin].PrivateKey(privKey);
     const flattenedMessage = _.isArray(message) ? _.join(message) : message;
-    var hash = this.hashMessage(flattenedMessage);
-
-    return crypto.ECDSA.sign(hash, priv, 'little').toString();
+    var hash = this.hashMessage(flattenedMessage, coin);
+    return Bitcore_[coin].crypto.ECDSA.sign(hash, priv, 'little').toString();
   }
 
-  static verifyMessage(message: Array<string> | string, signature, pubKey) {
+  static verifyMessage(
+    message: Array<string> | string,
+    signature,
+    pubKey,
+    coin
+  ) {
     $.checkArgument(message);
     $.checkArgument(pubKey);
+    coin = coin || 'vcl';
 
     if (!signature) return false;
 
-    var pub = new PublicKey(pubKey);
+    var pub = new Bitcore_[coin].PublicKey(pubKey);
     const flattenedMessage = _.isArray(message) ? _.join(message) : message;
-    const hash = this.hashMessage(flattenedMessage);
+    const hash = this.hashMessage(flattenedMessage, coin);
     try {
-      var sig = new crypto.Signature.fromString(signature);
-      return crypto.ECDSA.verify(hash, sig, pub, 'little');
+      var sig = new Bitcore_[coin].crypto.Signature.fromString(signature);
+      return Bitcore_[coin].crypto.ECDSA.verify(hash, sig, pub, 'little');
     } catch (e) {
       return false;
     }
   }
 
-  static privateKeyToAESKey(privKey) {
+  static privateKeyToAESKey(privKey, coin) {
+    coin = coin || 'vcl';
     $.checkArgument(privKey && _.isString(privKey));
-    $.checkArgument(Bitcore.PrivateKey.isValid(privKey), 'The private key received is invalid');
-    var pk = Bitcore.PrivateKey.fromString(privKey);
-    return Bitcore.crypto.Hash.sha256(pk.toBuffer())
+    $.checkArgument(
+      Bitcore_[coin].PrivateKey.isValid(privKey),
+      'The private key received is invalid'
+    );
+    var pk = Bitcore_[coin].PrivateKey.fromString(privKey);
+    return Bitcore_[coin].crypto.Hash.sha256(pk.toBuffer())
       .slice(0, 16)
       .toString('base64');
   }
@@ -153,7 +178,15 @@ export class Utils {
     return { _input, addressIndex, isChange };
   }
 
-  static deriveAddress(scriptType, publicKeyRing, path, m, network, coin) {
+  static deriveAddress(
+    scriptType,
+    publicKeyRing,
+    path,
+    m,
+    network,
+    coin,
+    escrowInputs?
+  ) {
     $.checkArgument(_.includes(_.values(Constants.SCRIPT_TYPES), scriptType));
 
     coin = coin || 'vcl';
@@ -168,22 +201,61 @@ export class Utils {
     switch (scriptType) {
       case Constants.SCRIPT_TYPES.P2WSH:
         const nestedWitness = false;
-        bitcoreAddress = bitcore.Address.createMultisig(publicKeys, m, network, nestedWitness, 'witnessscripthash');
+        bitcoreAddress = bitcore.Address.createMultisig(
+          publicKeys,
+          m,
+          network,
+          nestedWitness,
+          'witnessscripthash'
+        );
         break;
       case Constants.SCRIPT_TYPES.P2SH:
-        bitcoreAddress = bitcore.Address.createMultisig(publicKeys, m, network);
+        if (escrowInputs) {
+          var xpub = new bitcore.HDPublicKey(publicKeyRing[0].xPubKey);
+          const inputPublicKeys = escrowInputs.map(
+            input => xpub.deriveChild(input.path).publicKey
+          );
+          bitcoreAddress = bitcore.Address.createEscrow(
+            inputPublicKeys,
+            publicKeys[0],
+            network
+          );
+          publicKeys = [publicKeys[0], ...inputPublicKeys];
+        } else {
+          bitcoreAddress = bitcore.Address.createMultisig(
+            publicKeys,
+            m,
+            network
+          );
+        }
         break;
       case Constants.SCRIPT_TYPES.P2WPKH:
-        bitcoreAddress = bitcore.Address.fromPublicKey(publicKeys[0], network, 'witnesspubkeyhash');
+        bitcoreAddress = bitcore.Address.fromPublicKey(
+          publicKeys[0],
+          network,
+          'witnesspubkeyhash'
+        );
         break;
       case Constants.SCRIPT_TYPES.P2PKH:
-        $.checkState(_.isArray(publicKeys) && publicKeys.length == 1);
+        $.checkState(
+          _.isArray(publicKeys) && publicKeys.length == 1,
+          'publicKeys array undefined'
+        );
         if (Constants.UTXO_COINS.includes(coin)) {
-          bitcoreAddress = bitcore.Address.fromPublicKey(publicKeys[0], network);
+          bitcoreAddress = bitcore.Address.fromPublicKey(
+            publicKeys[0],
+            network
+          );
         } else {
           const { addressIndex, isChange } = this.parseDerivationPath(path);
           const [{ xPubKey }] = publicKeyRing;
-          bitcoreAddress = Deriver.deriveAddress(chain.toUpperCase(), network, xPubKey, addressIndex, isChange);
+          bitcoreAddress = Deriver.deriveAddress(
+            chain.toUpperCase(),
+            network,
+            xPubKey,
+            addressIndex,
+            isChange
+          );
         }
         break;
     }
@@ -212,19 +284,24 @@ export class Utils {
     return sjcl.codec.hex.fromBits(hash);
   }
 
-  static signRequestPubKey(requestPubKey, xPrivKey) {
-    var priv = new Bitcore.HDPrivateKey(xPrivKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).privateKey;
-    return this.signMessage(requestPubKey, priv);
+  static signRequestPubKey(requestPubKey, xPrivKey, coin) {
+    coin = coin || 'vcl';
+    var priv = new Bitcore_[coin].HDPrivateKey(xPrivKey).deriveChild(
+      Constants.PATHS.REQUEST_KEY_AUTH
+    ).privateKey;
+    return this.signMessage(requestPubKey, priv, coin);
   }
 
-  static verifyRequestPubKey(requestPubKey, signature, xPubKey) {
-    var pub = new Bitcore.HDPublicKey(xPubKey).deriveChild(Constants.PATHS.REQUEST_KEY_AUTH).publicKey;
-    return this.verifyMessage(requestPubKey, signature, pub.toString());
+  static verifyRequestPubKey(requestPubKey, signature, xPubKey, coin) {
+    coin = coin || 'vcl';
+    var pub = new Bitcore_[coin].HDPublicKey(xPubKey).deriveChild(
+      Constants.PATHS.REQUEST_KEY_AUTH
+    ).publicKey;
+    return this.verifyMessage(requestPubKey, signature, pub.toString(), coin);
   }
 
   static formatAmount(satoshis, unit, opts?) {
     $.shouldBeNumber(satoshis);
-    $.checkArgument(_.includes(_.keys(Constants.UNITS), unit));
 
     var clipDecimals = (number, decimals) => {
       let str = number.toString();
@@ -258,12 +335,17 @@ export class Utils {
 
     var u = Constants.UNITS[unit];
     var precision = opts.fullPrecision ? 'full' : 'short';
-    var amount = clipDecimals(satoshis / u.toSatoshis, u[precision].maxDecimals).toFixed(u[precision].maxDecimals);
+    var decimals = opts.decimals ? opts.decimals[precision] : u[precision];
+    var toSatoshis = opts.toSatoshis ? opts.toSatoshis : u.toSatoshis;
+    var amount = clipDecimals(
+      satoshis / toSatoshis,
+      decimals.maxDecimals
+    ).toFixed(decimals.maxDecimals);
     return addSeparators(
       amount,
       opts.thousandsSeparator || ',',
       opts.decimalSeparator || '.',
-      u[precision].minDecimals
+      decimals.minDecimals
     );
   }
 
@@ -277,13 +359,24 @@ export class Utils {
 
       t.setAtomicSwap(txp.atomicswap);
 
-      if (txp.version >= 4) {
+      if (txp.version >= 3) {
         t.setVersion(2);
       } else {
         t.setVersion(1);
       }
 
-      $.checkState(_.includes(_.values(Constants.SCRIPT_TYPES), txp.addressType));
+      // john 20220219
+      if (txp.txExtends && txp.txExtends.version) {
+        t.setVersion(txp.txExtends.version);
+      } else if (txp.asset && txp.asset.version) {
+        // john 20220709
+        t.setVersion(txp.asset.version);
+      }
+
+      $.checkState(
+        _.includes(_.values(Constants.SCRIPT_TYPES), txp.addressType),
+        'Failed state: addressType not in SCRIPT_TYPES'
+      );
 
       switch (txp.addressType) {
         case Constants.SCRIPT_TYPES.P2WSH:
@@ -302,7 +395,10 @@ export class Utils {
         t.to(txp.toAddress, txp.amount);
       } else if (txp.outputs) {
         _.each(txp.outputs, o => {
-          $.checkState(o.script || o.toAddress, 'Output should have either toAddress or script specified');
+          $.checkState(
+            o.script || o.toAddress,
+            'Output should have either toAddress or script specified'
+          );
           if (o.script) {
             t.addOutput(
               new bitcore.Transaction.Output({
@@ -316,22 +412,37 @@ export class Utils {
         });
       }
 
-      t.fee(txp.fee);
-      if (txp.changeAddress) {
-        t.change(txp.changeAddress.address);
-      }
+      if (!txp.asset || !txp.asset.version) {
+        t.fee(txp.fee);
 
-      // Shuffle outputs for improved privacy
-      if (t.outputs.length > 1) {
-        var outputOrder = _.reject(txp.outputOrder, order => {
-          return order >= t.outputs.length;
-        });
-        $.checkState(t.outputs.length == outputOrder.length);
-        t.sortOutputs(outputs => {
-          return _.map(outputOrder, i => {
-            return outputs[i];
+        if (txp.instantAcceptanceEscrow && txp.escrowAddress) {
+          t.escrow(
+            txp.escrowAddress.address,
+            txp.instantAcceptanceEscrow + txp.fee
+          );
+        }
+
+        if (txp.changeAddress) {
+          t.change(txp.changeAddress.address);
+        }
+
+        if (txp.enableRBF) t.enableRBF();
+
+        // Shuffle outputs for improved privacy
+        if (t.outputs.length > 1) {
+          var outputOrder = _.reject(txp.outputOrder, order => {
+            return order >= t.outputs.length;
           });
-        });
+          $.checkState(
+            t.outputs.length == outputOrder.length,
+            'Failed state: t.ouputs.length == outputOrder.length at buildTx()'
+          );
+          t.sortOutputs(outputs => {
+            return _.map(outputOrder, i => {
+              return outputs[i];
+            });
+          });
+        }
       }
 
       // Validate inputs vs outputs independently of Bitcore
@@ -350,12 +461,32 @@ export class Utils {
         0
       );
 
-      $.checkState(totalInputs - totalOutputs >= 0);
-      $.checkState(totalInputs - totalOutputs <= Defaults.MAX_TX_FEE);
+      $.checkState(
+        totalInputs - totalOutputs >= 0,
+        'Failed state: totalInputs - totalOutputs >= 0 at buildTx'
+      );
+      $.checkState(
+        totalInputs - totalOutputs <= Defaults.MAX_TX_FEE(coin),
+        'Failed state: totalInputs - totalOutputs <= Defaults.MAX_TX_FEE(coin) at buildTx'
+      );
+
+      if (txp.asset && txp.asset.version) {
+        t.fee(totalInputs - totalOutputs);
+      }
 
       return t;
     } else {
-      const { data, destinationTag, outputs, payProUrl, tokenAddress } = txp;
+      // ETH ERC20 XRP
+      const {
+        data,
+        destinationTag,
+        outputs,
+        payProUrl,
+        tokenAddress,
+        multisigContractAddress,
+        isTokenSwap,
+        tokenId
+      } = txp;
       const recipients = outputs.map(output => {
         return {
           amount: output.amount,
@@ -369,26 +500,96 @@ export class Utils {
         recipients[0].data = data;
       }
       const unsignedTxs = [];
-      const isERC20 = tokenAddress && !payProUrl;
-      const chain = isERC20 ? 'ERC20' : this.getChain(coin);
-      for (let index = 0; index < recipients.length; index++) {
-        const rawTx = Transactions.create({
+      // If it is a token swap its an already created ERC20 transaction so we skip it and go directly to ETH transaction create
+      const isERC20 = tokenAddress && !payProUrl && !isTokenSwap;
+      const isERC721 = tokenAddress && tokenId;
+      const isETHMULTISIG = multisigContractAddress;
+      var chain;
+      if (!txp.relay || !txp.relay.cmd) {
+        chain = isETHMULTISIG
+          ? 'ETHMULTISIG'
+          : isERC721
+          ? 'ERC721'
+          : isERC20
+          ? 'ERC20'
+          : txp.chain
+          ? txp.chain.toUpperCase()
+          : this.getChain(coin);
+        for (let index = 0; index < recipients.length; index++) {
+          const rawTx = Transactions.create({
+            ...txp,
+            ...recipients[index],
+            tag: destinationTag ? Number(destinationTag) : undefined,
+            chain,
+            nonce: Number(txp.nonce) + Number(index),
+            recipients: [recipients[index]]
+          });
+          unsignedTxs.push(rawTx);
+        }
+      }
+      if (txp.coin == 'eth' && txp.relay.cmd == 1) {
+        chain = 'RELAY';
+        txp.chain = chain;
+        for (let index = 0; index < recipients.length; index++) {
+          var rawTx = Transactions.get({ ...txp }).createApprove({
+            ...txp,
+            ...recipients[index],
+            tag: destinationTag ? Number(destinationTag) : undefined,
+            chain,
+            nonce: Number(txp.nonce) + Number(index),
+            recipients: [recipients[index]]
+          });
+          unsignedTxs.push(rawTx);
+        }
+        txp.chain = 'ETH';
+      } else if (txp.coin == 'eth' && txp.relay.cmd == 2) {
+        chain = 'RELAY';
+        txp.chain = chain;
+        for (let index = 0; index < recipients.length; index++) {
+          var rawTx = Transactions.get({ ...txp }).createFreezeBurnERC20({
+            ...txp,
+            ...recipients[index],
+            tag: destinationTag ? Number(destinationTag) : undefined,
+            chain,
+            nonce: Number(txp.nonce) + Number(index),
+            recipients: [recipients[index]]
+          });
+          unsignedTxs.push(rawTx);
+        }
+        txp.chain = 'ETH';
+      } else if (txp.coin == 'eth' && txp.relay.cmd == 3) {
+        chain = 'RELAY';
+        txp.chain = chain;
+        var rawTx = Transactions.get({ ...txp }).createRelayTx({
           ...txp,
-          ...recipients[index],
           tag: destinationTag ? Number(destinationTag) : undefined,
           chain,
-          nonce: Number(txp.nonce) + Number(index),
-          recipients: [recipients[index]]
+          nonce: Number(txp.nonce)
         });
         unsignedTxs.push(rawTx);
+        txp.chain = 'ETH';
+      } else if (txp.coin == 'eth' && txp.relay.cmd == 4) {
+        chain = 'RELAY';
+        txp.chain = chain;
+        var rawTx = Transactions.get({ ...txp }).createRelayAssetTx({
+          ...txp,
+          tag: destinationTag ? Number(destinationTag) : undefined,
+          chain,
+          nonce: Number(txp.nonce)
+        });
+        unsignedTxs.push(rawTx);
+        txp.chain = 'ETH';
+      } else {
+        throw new Error('relay cmd is invalid');
       }
       return { uncheckedSerialize: () => unsignedTxs };
     }
   }
 
-  static isPrivateKey(privKey) {
+  static isPrivateKey(privKey, coin) {
+    coin = coin || 'vcl';
     try {
-      var privkey = new PrivateKey(privKey);
+      var privkey = new Bitcore_[coin].PrivateKey(privKey);
       return true;
     } catch (e) {
       return false;

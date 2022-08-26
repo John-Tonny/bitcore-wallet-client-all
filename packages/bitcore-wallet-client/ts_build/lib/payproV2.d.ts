@@ -21,10 +21,11 @@ export declare class PayProV2 {
         paymentUrl: any;
         unsafeBypassValidation?: boolean;
     }): Promise<any>;
-    static selectPaymentOption({ paymentUrl, chain, currency, unsafeBypassValidation }: {
+    static selectPaymentOption({ paymentUrl, chain, currency, payload, unsafeBypassValidation }: {
         paymentUrl: any;
         chain: any;
         currency: any;
+        payload: any;
         unsafeBypassValidation?: boolean;
     }): Promise<any>;
     static verifyUnsignedPayment({ paymentUrl, chain, currency, unsignedTransactions, unsafeBypassValidation }: {

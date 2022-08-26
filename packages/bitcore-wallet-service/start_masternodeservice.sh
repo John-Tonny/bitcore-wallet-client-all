@@ -1,9 +1,20 @@
 #!/bin/bash
 
-USER_PATH=/mnt/ethereum
-MODULE_PATH=$USER_PATH/bitcore/packages
-NODE_PATH=$USER_PATH/.nvm/versions/node/v10.5.0/bin
-LOG_PATH=$USER_PATH/bitcore/logs
+if [ "x${BITCORE_PATH}" == "x" ]; then
+  BITCORE_PATH=/root/bitcore
+fi
+
+if [ "x${NODE_PATH1}" == "x" ]; then
+  NODE_VERSION=`node -v`
+  NODE_PATH=$HOME/.nvm/versions/node/$NODE_VERSION/bin
+fi
+
+MODULE_PATH=$BITCORE_PATH/packages
+LOG_PATH=$BITCORE_PATH/logs
+
+if [ ! -d $LOG_PATH  ]; then
+  mkdir $LOG_PATH
+fi
 
 cd $MODULE_PATH/bitcore-wallet-service
 

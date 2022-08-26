@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import { ChainService } from '../chain/index';
+import logger from '../logger';
 import { Address } from './address';
 import { AddressManager } from './addressmanager';
 import { Copayer } from './copayer';
 
-const log = require('npmlog');
 const $ = require('preconditions').singleton();
 const Uuid = require('uuid');
 const config = require('../../config');
@@ -13,7 +13,13 @@ const Constants = Common.Constants,
   Defaults = Common.Defaults,
   Utils = Common.Utils;
 const Bitcore = {
-  vcl: require('vircle-lib')
+  btc: require('bitcore-lib'),
+  bch: require('bitcore-lib-cash'),
+  eth: require('bitcore-lib'),
+  xrp: require('bitcore-lib'),
+  doge: require('bitcore-lib-doge'),
+  ltc: require('bitcore-lib-ltc'),
+  vcl: require('bitcore-lib-vcl')
 };
 
 export interface IWallet {
@@ -184,7 +190,7 @@ export class Wallet {
   }
 
   updateBEKeys() {
-    $.checkState(this.isComplete());
+    $.checkState(this.isComplete(), 'Failed state: wallet incomplete at <updateBEKeys()>');
 
     const chain = ChainService.getChain(this.coin).toLowerCase();
     const bitcore = Bitcore[chain];
@@ -197,7 +203,7 @@ export class Wallet {
       this.network +
       this.coin +
       salt;
-    seed = bitcore.crypto.Hash.sha256(new Buffer(seed));
+    seed = bitcore.crypto.Hash.sha256(Buffer.from(seed));
     const priv = bitcore.PrivateKey(seed, this.network);
 
     this.beAuthPrivateKey2 = priv.toString();
@@ -212,7 +218,7 @@ export class Wallet {
   }
 
   addCopayer(copayer) {
-    $.checkState(copayer.coin == this.coin);
+    $.checkState(copayer.coin == this.coin, 'Failed state: copayer.coin not equal to this.coin at <addCopayer()>');
 
     this.copayers.push(copayer);
     if (this.copayers.length < this.n) return;
@@ -222,7 +228,10 @@ export class Wallet {
   }
 
   addCopayerRequestKey(copayerId, requestPubKey, signature, restrictions, name) {
-    $.checkState(this.copayers.length == this.n);
+    $.checkState(
+      this.copayers.length == this.n,
+      'Failed state: this.copayers.length == this.n at addCopayerRequestKey()'
+    );
 
     const c: any = this.getCopayer(copayerId);
 
@@ -248,28 +257,34 @@ export class Wallet {
     return this.scanning;
   }
 
-  createAddress(isChange, step) {
-    $.checkState(this.isComplete());
+  isZceCompatible() {
+    return this.coin === 'bch' && this.addressType === 'P2PKH';
+  }
+
+  createAddress(isChange, step, escrowInputs) {
+    $.checkState(this.isComplete(), 'Failed state: this.isComplete() at <createAddress()>');
 
     const path = this.addressManager.getNewAddressPath(isChange, step);
-    log.verbose('Deriving addr:' + path);
+    logger.debug('Deriving addr:' + path);
+    const scriptType = escrowInputs ? 'P2SH' : this.addressType;
     const address = Address.derive(
       this.id,
-      this.addressType,
+      scriptType,
       this.publicKeyRing,
       path,
       this.m,
       this.coin,
       this.network,
       isChange,
-      !this.nativeCashAddr
+      !this.nativeCashAddr,
+      escrowInputs
     );
     return address;
   }
 
   /// Only for power scan
   getSkippedAddress() {
-    $.checkState(this.isComplete());
+    $.checkState(this.isComplete(), 'Failed state: this.isComplete() at <getSkipeedAddress()>');
 
     const next = this.addressManager.getNextSkippedPath();
     if (!next) return;

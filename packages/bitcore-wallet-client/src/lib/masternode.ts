@@ -11,7 +11,7 @@ const Uuid = require('uuid');
 
 var Errors = require('./errors');
 
-var Bitcore = CWC.VircleLib;
+var Bitcore = CWC.BitcoreLibVcl;
 
 const CLIENT_VERSION = 1000000;
 const CLIENT_SENTINEL_VERSION = 1000000;
@@ -146,7 +146,7 @@ export class Masternode {
     return buf.toString('hex');
   }
 
-  singMasternode = function() {
+  singMasternode = function () {
     var presult = '';
     presult += this.serialize_input();
     presult += this.hash_decode();

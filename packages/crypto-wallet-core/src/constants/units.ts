@@ -66,6 +66,28 @@ export let UNITS = {
       minDecimals: 2
     }
   },
+  dai: {
+    toSatoshis: 1e18,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 6,
+      minDecimals: 2
+    }
+  },
+  wbtc: {
+    toSatoshis: 1e8,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 8,
+      minDecimals: 2
+    }
+  },
   usdc: {
     toSatoshis: 1e6,
     full: {
@@ -108,6 +130,50 @@ export let UNITS = {
     short: {
       maxDecimals: 0,
       minDecimals: 0
+    }
+  },
+  doge: {
+    toSatoshis: 100000000,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 6,
+      minDecimals: 2
+    }
+  },
+  ltc: {
+    toSatoshis: 100000000,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 6,
+      minDecimals: 2
+    }
+  },
+  shib: {
+    toSatoshis: 1e18,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 6,
+      minDecimals: 2
+    }
+  },
+  evcl: {
+    toSatoshis: 1e18,
+    full: {
+      maxDecimals: 8,
+      minDecimals: 8
+    },
+    short: {
+      maxDecimals: 6,
+      minDecimals: 2
     }
   }
 };

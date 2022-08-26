@@ -46,6 +46,36 @@ export declare const Constants: {
             decimal: number;
             address: string;
         };
+        '0x6b175474e89094c44da98b954eedeac495271d0f': {
+            name: string;
+            symbol: string;
+            decimal: number;
+            address: string;
+        };
+        '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': {
+            name: string;
+            symbol: string;
+            decimal: number;
+            address: string;
+        };
+        '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce': {
+            address: string;
+            decimal: number;
+            name: string;
+            symbol: string;
+        };
+        '0x8ffb6ceeb3c41f6286eedbc97df6d711ae00bff6': {
+            address: string;
+            decimal: number;
+            name: string;
+            symbol: string;
+        };
+        '0x9243A89a90Bf1d386A411a56Bb0072CE52143c8b': {
+            address: string;
+            decimal: number;
+            name: string;
+            symbol: string;
+        };
     };
     UNITS: {
         btc: {
@@ -114,6 +144,28 @@ export declare const Constants: {
                 minDecimals: number;
             };
         };
+        dai: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        wbtc: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
         usdc: {
             toSatoshis: number;
             full: {
@@ -148,6 +200,50 @@ export declare const Constants: {
             };
         };
         bit: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        doge: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        ltc: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        shib: {
+            toSatoshis: number;
+            full: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+            short: {
+                maxDecimals: number;
+                minDecimals: number;
+            };
+        };
+        evcl: {
             toSatoshis: number;
             full: {
                 maxDecimals: number;

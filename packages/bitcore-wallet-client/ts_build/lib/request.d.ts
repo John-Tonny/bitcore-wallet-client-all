@@ -10,7 +10,7 @@ export declare class Request {
     getHeaders(method: any, url: any, args: any): {
         'x-client-version': string;
     };
-    static _signRequest(method: any, url: any, args: any, privKey: any): any;
+    static _signRequest(method: any, url: any, args: any, privKey: any, coin: any): any;
     doRequest(method: any, url: any, args: any, useSession: any, cb: any): void;
     static _parseError(body: any): any;
     post(url: any, args: any, cb: any): void;

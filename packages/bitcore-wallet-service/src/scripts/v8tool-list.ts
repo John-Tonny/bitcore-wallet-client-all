@@ -2,7 +2,7 @@
 
 var _ = require('lodash');
 const request = require('request');
-const Bitcore = require('vircle-lib');
+const Bitcore = require('bitcore-lib');
 const requestStream = require('request');
 import { Client } from '../lib//blockchainexplorers/v8/client';
 
@@ -30,7 +30,12 @@ tmp.compressed = false;
 const pubKey = Bitcore.PrivateKey(tmp).toPublicKey();
 
 const BASE = {
-  VCL: `https://bws.vircle.xyz:2443/api/${coin}/${network}`
+  BTC: `https://api.bitcore.io/api/${coin}/${network}`,
+  BCH: `https://api.bitcore.io/api/${coin}/${network}`,
+  ETH: `https://api-eth.bitcore.io/api/${coin}/${network}`,
+  XRP: `https://api-xrp.bitcore.io/api/${coin}/${network}`,
+  DOGE: `https://api.bitcore.io/api/${coin}/${network}`,
+  LTC: `https://api.bitcore.io/api/${coin}/${network}`
 };
 
 let baseUrl = BASE[coin];

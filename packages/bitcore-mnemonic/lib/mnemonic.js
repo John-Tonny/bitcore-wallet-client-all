@@ -1,17 +1,17 @@
 'use strict';
 
-var bitcore = require('vircle-lib');
-var BN = bitcore.crypto.BN;
-var unorm = require('unorm');
-var _ = bitcore.deps._;
+const bitcore = require('bitcore-lib');
+const BN = bitcore.crypto.BN;
+const unorm = require('unorm');
+const _ = bitcore.deps._;
 
-var pbkdf2 = require('./pbkdf2');
-var errors = require('./errors');
+const pbkdf2 = require('./pbkdf2');
+const errors = require('./errors');
 
-var Hash = bitcore.crypto.Hash;
-var Random = bitcore.crypto.Random;
+const Hash = bitcore.crypto.Hash;
+const Random = bitcore.crypto.Random;
 
-var $ = bitcore.util.preconditions;
+const $ = bitcore.util.preconditions;
 
 const SEED_STANDARD_PREFIX = '01';
 const SEED_SEGWIT_PREFIX = '100';
@@ -37,6 +37,7 @@ const SEED_SEGWIT_PREFIX = '100';
  * @returns {Mnemonic} A new instance of Mnemonic
  * @constructor
  */
+// john
 var Mnemonic = function(data, wordlist, useMulti) {
   if (!(this instanceof Mnemonic)) {
     return new Mnemonic(data, wordlist);
@@ -46,6 +47,7 @@ var Mnemonic = function(data, wordlist, useMulti) {
     wordlist = data;
     data = null;
   }
+
 
   // handle data overloading
   var ent, phrase, seed;
@@ -60,6 +62,7 @@ var Mnemonic = function(data, wordlist, useMulti) {
     throw new bitcore.errors.InvalidArgument('data', 'Must be a Buffer, a string or an integer');
   }
   ent = ent || 128;
+
 
   // check and detect wordlist
   wordlist = wordlist || Mnemonic._getDictionary(phrase);
@@ -91,6 +94,9 @@ var Mnemonic = function(data, wordlist, useMulti) {
   }
 
   phrase = phrase || Mnemonic._mnemonic(ent, wordlist);
+
+  // this fixes spacing in JP
+  phrase = unorm.nfkd(phrase);
 
   Object.defineProperty(this, 'wordlist', {
     configurable: false,

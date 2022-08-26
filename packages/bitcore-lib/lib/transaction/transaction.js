@@ -966,7 +966,7 @@ Transaction.prototype._updateChangeOutput = function() {
   var available = this._getUnspentValue();
   var fee = this.getFee();
   var changeAmount = available - fee;
-  if (changeAmount > 0) {
+  if (changeAmount > Transaction.DUST_AMOUNT) {
     this._changeIndex = this.outputs.length;
     this._addOutput(new Output({
       script: this._changeScript,
@@ -1039,12 +1039,13 @@ Transaction.prototype._clearSignatures = function() {
 Transaction.prototype._estimateSize = function() {
   var result = Transaction.MAXIMUM_EXTRA_SIZE;
   _.each(this.inputs, function(input) {
+    result += 32 + 4;  // prevout size:w
     result += input._estimateSize();
   });
   _.each(this.outputs, function(output) {
     result += output.script.toBuffer().length + 9;
   });
-  return result;
+  return Math.ceil(result);
 };
 
 Transaction.prototype._removeOutput = function(index) {

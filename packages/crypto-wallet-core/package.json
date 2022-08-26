@@ -1,12 +1,12 @@
 {
   "name": "crypto-wallet-core",
-  "version": "8.20.4",
+  "version": "8.25.27",
   "description": "A multi-currency support library for address derivation, private key creation, and transaction creation",
   "main": "./ts_build/src/index.js",
   "types": "./ts_build/src/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf ts_build",
+    "clean": "rm -rf ts_build && tsc --version",
     "compile": "npm run clean && npm run build",
     "precommit": "npm run fix",
     "lint": "npm run lint:ts && npm run lint:style",
@@ -27,24 +27,27 @@
   "author": "Micah Riggan",
   "license": "MIT",
   "dependencies": {
-    "ethers": "4.0.37",
+    "bitcore-lib": "^8.25.25",
+    "bitcore-lib-cash": "^8.25.25",
+    "bitcore-lib-doge": "^8.25.27",
+    "bitcore-lib-ltc": "^8.25.27",
+    "bitcore-lib-vcl": "^8.25.25",
+    "info": "0.0.6-beta.0",
     "ripple-binary-codec": "0.2.6",
-    "ripple-keypairs": "git+https://git@github.com/bitpay/ripple-keypairs.git#8d3a4643a8ddfce8222786e1e5a3e85a89a5b7f5",
-    "ripple-lib": "1.4.2",
-    "typedarray-to-buffer": "^3.1.5",
-    "vircle-lib": "git+https://github.com/John-Tonny/vircle-lib",
-    "web3": "1.2.1"
+    "ripple-keypairs": "https://git@github.com/bitpay/ripple-keypairs.git#8d3a4643a8ddfce8222786e1e5a3e85a89a5b7f5",
+    "ripple-lib": "^1.8.0",
+    "ethers": "^5.6.1",
+    "web3": "1.7.1"
   },
   "devDependencies": {
     "@types/chai": "4.1.7",
     "@types/mocha": "5.2.6",
-    "@types/node": "10.12.15",
-    "@types/web3": "1.0.19",
+    "@types/node": "^14.10.0",
     "chai": "4.2.0",
     "mocha": "6.1.4",
     "ts-node": "8.1.0",
     "tslint": "5.14.0",
-    "typescript": "3.3.4000"
+    "typescript": "^3.6.5"
   },
   "gitHead": "012cc0216a9bc6b195035855bd17149bad41acd1",
   "lint-staged": {

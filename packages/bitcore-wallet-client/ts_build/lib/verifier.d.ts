@@ -1,5 +1,5 @@
 export declare class Verifier {
-    static checkAddress(credentials: any, address: any): boolean;
+    static checkAddress(credentials: any, address: any, escrowInputs?: any): boolean;
     static checkCopayers(credentials: any, copayers: any): boolean;
     static checkProposalCreation(args: any, txp: any, encryptingKey: any): boolean;
     static checkTxProposalSignature(credentials: any, txp: any): boolean;

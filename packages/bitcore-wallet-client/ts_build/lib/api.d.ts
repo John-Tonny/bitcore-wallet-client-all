@@ -32,7 +32,11 @@ export declare class API extends EventEmitter {
     static sjcl: any;
     static errors: any;
     static Masternode: typeof Masternode;
-    static Vircle: any;
+    static Bitcore: any;
+    static BitcoreCash: any;
+    static BitcoreDoge: any;
+    static BitcoreLtc: any;
+    static BitcoreVcl: any;
     constructor(opts?: any);
     static privateKeyEncryptionOpts: {
         iter: number;
@@ -76,6 +80,7 @@ export declare class API extends EventEmitter {
     isComplete(): any;
     _extractPublicKeyRing(copayers: any): any[];
     getFeeLevels(coin: any, network: any, cb: any): void;
+    clearCache(cb: any): void;
     getVersion(cb: any): void;
     _checkKeyDerivation(): boolean;
     createWallet(walletName: any, copayerName: any, m: any, n: any, opts: any, cb: any): any;
@@ -91,20 +96,27 @@ export declare class API extends EventEmitter {
     getUtxos(opts: any, cb: any): void;
     getCoinsForTx(opts: any, cb: any): void;
     _getCreateTxProposalArgs(opts: any): any;
-    createTxProposal(opts: any, cb: any, baseUrl: any): void;
-    createAtomicswapRedeemTxProposal(opts: any, cb: any, baseUrl: any): void;
-    createAtomicswapRefundTxProposal(opts: any, cb: any, baseUrl: any): void;
-    createAtomicSwapInitiateTxProposal(opts: any, cb: any, baseUrl: any): void;
-    createAtomicSwapParticipateTxProposal(opts: any, cb: any, baseUrl: any): void;
-    publishTxProposal(opts: any, cb: any): void;
+    createTxProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createAtomicswapRedeemTxProposal(opts: any, cb: any, baseUrl: any): any;
+    createAtomicswapRefundTxProposal(opts: any, cb: any, baseUrl: any): any;
+    createAtomicSwapInitiateTxProposal(opts: any, cb: any, baseUrl: any): any;
+    createAtomicSwapParticipateTxProposal(opts: any, cb: any, baseUrl: any): any;
+    publishTxProposal(opts: any, cb: any): any;
     createAddress(opts: any, cb: any): any;
     getMainAddresses(opts: any, cb: any): void;
-    getBalance(opts: any, cb: any): any;
+    getBalance(opts: any, cb: any): void;
     getTxProposals(opts: any, cb: any): void;
     getAtomicSwapTxProposals(opts: any, cb: any): void;
     getPayPro(txp: any, cb: any): any;
     getPayProV2(txp: any): Promise<any>;
     pushSignatures(txp: any, signatures: any, cb: any, base: any): any;
+    createAdvertisement(opts: any, cb: any): void;
+    getAdvertisements(opts: any, cb: any): void;
+    getAdvertisementsByCountry(opts: any, cb: any): void;
+    getAdvertisement(opts: any, cb: any): void;
+    activateAdvertisement(opts: any, cb: any): void;
+    deactivateAdvertisement(opts: any, cb: any): void;
+    deleteAdvertisement(opts: any, cb: any): void;
     signTxProposalFromAirGapped(txp: any, encryptedPkr: any, m: any, n: any, password: any): void;
     static signTxProposalFromAirGapped(key: any, txp: any, unencryptedPkr: any, m: any, n: any, opts: any, cb: any): any;
     rejectTxProposal(txp: any, reason: any, cb: any): void;
@@ -113,6 +125,7 @@ export declare class API extends EventEmitter {
     broadcastTxProposal(txp: any, cb: any): void;
     removeTxProposal(txp: any, cb: any): void;
     getTxHistory(opts: any, cb: any): void;
+    getVclTxHistory(opts: any, cb: any): void;
     getTx(id: any, cb: any): void;
     startScan(opts: any, cb: any): void;
     addAccess(opts: any, cb: any): void;
@@ -126,6 +139,10 @@ export declare class API extends EventEmitter {
     txConfirmationUnsubscribe(txid: any, cb: any): void;
     getSendMaxInfo(opts: any, cb: any): void;
     getEstimateGas(opts: any, cb: any): void;
+    getNonce(opts: any, cb: any): void;
+    getMultisigContractInstantiationInfo(opts: any, cb: any): void;
+    getMultisigContractInfo(opts: any, cb: any): void;
+    getTokenContractInfo(opts: any, cb: any): void;
     getStatusByIdentifier(opts: any, cb: any): void;
     _oldCopayDecrypt(username: any, password: any, blob: any): any;
     getWalletIdsFromOldCopay(username: any, password: any, blob: any): any[];
@@ -141,6 +158,12 @@ export declare class API extends EventEmitter {
     simplexGetQuote(data: any): Promise<any>;
     simplexPaymentRequest(data: any): Promise<any>;
     simplexGetEvents(data: any): Promise<any>;
+    wyreWalletOrderQuotation(data: any): Promise<any>;
+    wyreWalletOrderReservation(data: any): Promise<any>;
+    changellyGetPairsParams(data: any): Promise<any>;
+    changellyGetFixRateForAmount(data: any): Promise<any>;
+    changellyCreateFixTransaction(data: any): Promise<any>;
+    oneInchGetSwap(data: any): Promise<any>;
     getMasternodeCollateral(opts: any, cb: any): any;
     removeMasternodes(opts: any, cb: any): any;
     getMasternodes(opts: any, cb: any): any;
@@ -148,9 +171,107 @@ export declare class API extends EventEmitter {
     broadcastMasternode(opts: any, cb: any): any;
     getMasternodePing(opts: any, cb: any): any;
     signMasternode(opts: any, cb: any): any;
+    getMasternodeBlsGenerate(opts: any, cb: any): any;
+    getMasternodeBlsSign(opts: any): Promise<unknown>;
     isValidAddress(opts: any, cb: any): any;
     auditContract(opts: any, cb: any): any;
     createReward(opts: any, cb: any): void;
     decryMessage(msg: any, key: any, cb: any): any;
+    participateAtomicSwap(opts: any): {
+        dryRun: boolean;
+        excludeUnconfirmedUtxos: boolean;
+        network: any;
+        excludeMasternode: boolean;
+        message: any;
+        atomicswap: {
+            secretHash: any;
+            initiate: any;
+        };
+        outputs: {
+            toAddress: any;
+            amount: any;
+        }[];
+    };
+    initateAtomicSwap(opts: any): {
+        dryRun: boolean;
+        excludeUnconfirmedUtxos: boolean;
+        network: any;
+        excludeMasternode: boolean;
+        message: any;
+        atomicswap: {
+            secretHash: any;
+            initiate: any;
+        };
+        outputs: {
+            toAddress: any;
+            amount: any;
+        }[];
+    };
+    initAtomicSwap(initate: any, opts: any): {
+        dryRun: boolean;
+        excludeUnconfirmedUtxos: boolean;
+        network: any;
+        excludeMasternode: boolean;
+        message: any;
+        atomicswap: {
+            secretHash: any;
+            initiate: any;
+        };
+        outputs: {
+            toAddress: any;
+            amount: any;
+        }[];
+    };
+    refundAtomicSwap(opts: any): {
+        dryRun: boolean;
+        excludeUnconfirmedUtxos: boolean;
+        network: any;
+        excludeMasternode: boolean;
+        atomicswap: {
+            contract: any;
+            redeem: boolean;
+        };
+        outputs: {
+            toAddress: any;
+        }[];
+    };
+    redeemAtomicSwap(opts: any): {
+        dryRun: boolean;
+        excludeUnconfirmedUtxos: boolean;
+        network: any;
+        excludeMasternode: boolean;
+        atomicswap: {
+            secret: any;
+            contract: any;
+            redeem: boolean;
+        };
+        outputs: {
+            toAddress: any;
+        }[];
+    };
+    getAtomicswapInfo(opts: any, cb: any): void;
+    getRawTransaction(coin: any, network: any, txid: any, cb: any): void;
+    proRegTx(opts: any, cb: any): any;
+    proUpRegTx(opts: any, cb: any): any;
+    proUpServiceTx(opts: any, cb: any): any;
+    proUpRevokeTx(opts: any, cb: any): any;
+    createTxProReg(opts: any, cb: any, baseUrl: any): Promise<any>;
+    createTxProUpReg(opts: any, cb: any, baseUrl: any): Promise<any>;
+    createTxProUpService(opts: any, cb: any, baseUrl: any): Promise<any>;
+    createTxProUpRevoke(opts: any, cb: any, baseUrl: any): Promise<any>;
+    _getTxProReg(txp: any, opts: any, cb: any): Promise<any>;
+    _getChangeAddress(opts: any): Promise<unknown>;
+    _postRequest(baseUrl: any, args: any): Promise<unknown>;
+    _getRequest(baseUrl: any): Promise<unknown>;
+    createAssetSendProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createAssetBurnProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createAssetMintProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createVclProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createApproveProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createFreezeBurnERC20Proposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createRelayTxProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    createRelayAssetTxProposal(opts: any, cb: any, baseUrl: any, additionOpts: any): Promise<any>;
+    getSPVProof(opts: any, cb: any): any;
+    getAsset(opts: any, cb: any): any;
 }
 //# sourceMappingURL=api.d.ts.map

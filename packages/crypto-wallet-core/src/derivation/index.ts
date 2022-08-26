@@ -1,6 +1,12 @@
+import { BchDeriver } from './bch';
+import { BtcDeriver } from './btc';
+import { DogeDeriver } from './doge';
+import { EthDeriver } from './eth';
+import { LtcDeriver } from './ltc';
 import { Paths } from './paths';
 // john
 import { VclDeriver } from './vcl';
+import { XrpDeriver } from './xrp';
 
 export interface Key {
   address: string;
@@ -15,6 +21,12 @@ export interface IDeriver {
 }
 
 const derivers: { [chain: string]: IDeriver } = {
+  BTC: new BtcDeriver(),
+  BCH: new BchDeriver(),
+  ETH: new EthDeriver(),
+  XRP: new XrpDeriver(),
+  DOGE: new DogeDeriver(),
+  LTC: new LtcDeriver(),
   VCL: new VclDeriver()
 };
 

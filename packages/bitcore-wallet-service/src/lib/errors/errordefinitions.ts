@@ -2,6 +2,7 @@ const _ = require('lodash');
 import { ClientError } from './clienterror';
 
 const errors = {
+  AD_ALREADY_EXISTS: 'Ad already exists',
   BAD_SIGNATURES: 'Bad signatures',
   COPAYER_DATA_MISMATCH: 'Copayer data mismatch',
   COPAYER_IN_WALLET: 'Copayer already in wallet',
@@ -21,6 +22,7 @@ const errors = {
   LOCKED_ETH_FEE: 'Your linked ETH wallet does not have enough ETH for fee',
   HISTORY_LIMIT_EXCEEDED: 'Requested page limit is above allowed maximum',
   MAIN_ADDRESS_GAP_REACHED: 'Maximum number of consecutive addresses without activity reached',
+  NETWORK_SUSPENDED: '$network operations are currently suspended. Please check status.bitpay.com for further updates.',
   NOT_AUTHORIZED: 'Not authorized',
   TOO_MANY_KEYS: 'Too many keys registered',
   TX_ALREADY_BROADCASTED: 'The transaction proposal is already broadcasted',
@@ -39,6 +41,7 @@ const errors = {
   WALLET_NOT_COMPLETE: 'Wallet is not complete',
   WALLET_NOT_FOUND: 'Wallet not found',
   WALLET_NEED_SCAN: 'Wallet needs addresses scan',
+  WALLET_NOT_SUPPORT: 'The address type of the wallet does not support such transactions',
   WRONG_SIGNING_METHOD: 'Wrong signed method for coin/network'
 };
 

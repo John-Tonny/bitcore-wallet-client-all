@@ -1,4 +1,4 @@
-const VircleLib = require('vircle-lib');
+const VircleLib = require('bitcore-lib-vcl');
 import { IDeriver } from '..';
 export abstract class AbstractVircleLibDeriver implements IDeriver {
   public abstract vircleLib;

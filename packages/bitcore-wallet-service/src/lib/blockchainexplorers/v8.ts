@@ -3,15 +3,20 @@ import _ from 'lodash';
 import * as request from 'request-promise-native';
 import io = require('socket.io-client');
 import { ChainService } from '../chain/index';
+import logger from '../logger';
 import { Client } from './v8/client';
 
 const $ = require('preconditions').singleton();
-const log = require('npmlog');
-log.debug = log.verbose;
 const Common = require('../common');
-const Bitcore = require('vircle-lib');
+const Bitcore = require('bitcore-lib');
 const Bitcore_ = {
-  vcl: require('vircle-lib')
+  btc: Bitcore,
+  bch: require('bitcore-lib-cash'),
+  eth: Bitcore,
+  xrp: Bitcore,
+  doge: require('bitcore-lib-doge'),
+  ltc: require('bitcore-lib-ltc'),
+  vcl: require('bitcore-lib-vcl')
 };
 const config = require('../../config');
 const Constants = Common.Constants,
@@ -20,7 +25,11 @@ const Constants = Common.Constants,
 
 function v8network(bwsNetwork) {
   if (bwsNetwork == 'livenet') return 'mainnet';
-  if (bwsNetwork == 'testnet' && config.blockchainExplorerOpts.vcl.testnet.regtestEnabled) {
+  if (
+    bwsNetwork == 'testnet' &&
+    config.blockchainExplorerOpts.btc &&
+    config.blockchainExplorerOpts.btc.testnet.regtestEnabled
+  ) {
     return 'regtest';
   }
   return bwsNetwork;
@@ -75,7 +84,7 @@ export class V8 {
   }
 
   _getAuthClient(wallet) {
-    $.checkState(wallet.beAuthPrivateKey2);
+    $.checkState(wallet.beAuthPrivateKey2, 'Failed state: wallet.beAuthPrivateKey2 at <_getAuthClient()>');
     return new this.Client({
       baseUrl: this.baseUrl,
       authKey: Bitcore_[this.coin].PrivateKey(wallet.beAuthPrivateKey2)
@@ -130,9 +139,9 @@ export class V8 {
 
   async getBalance(wallet, cb) {
     const client = this._getAuthClient(wallet);
-    const { tokenAddress } = wallet;
+    const { tokenAddress, multisigContractAddress } = wallet;
     client
-      .getBalance({ pubKey: wallet.beAuthPublicKey2, payload: {}, tokenAddress })
+      .getBalance({ pubKey: wallet.beAuthPublicKey2, payload: {}, tokenAddress, multisigContractAddress })
       .then(ret => {
         return cb(null, ret);
       })
@@ -142,11 +151,10 @@ export class V8 {
   getConnectionInfo() {
     return 'V8 (' + this.coin + '/' + this.v8network + ') @ ' + this.host;
   }
-
-  _transformUtxos(unspent, bcheight) {
-    $.checkState(bcheight > 0, 'No BC height passed to _transformUtxos');
+  _transformUtxos(utxos, bcheight) {
+    $.checkState(bcheight > 0, 'Failed state: No BC height passed to _transformUtxos()');
     const ret = _.map(
-      _.reject(unspent, x => {
+      _.reject(utxos, x => {
         return x.spentHeight && x.spentHeight <= -3;
       }),
       x => {
@@ -158,8 +166,9 @@ export class V8 {
           txid: x.mintTxid,
           vout: x.mintIndex,
           locked: false,
-          coinbase: x.coinbase,
-          confirmations: x.mintHeight > 0 && bcheight >= x.mintHeight ? bcheight - x.mintHeight + 1 : 0
+          confirmations: x.mintHeight > 0 && bcheight >= x.mintHeight ? bcheight - x.mintHeight + 1 : 0,
+          spent: !!x.spentTxid,
+          coinbase: x.coinbase
         };
 
         // v8 field name differences
@@ -200,15 +209,19 @@ export class V8 {
    *
    * This is for internal usage, address should be on internal representaion
    */
-  getUtxos(wallet, height, cb) {
+  getUtxos(wallet, height, cb, params: { includeSpent?: boolean } = {}) {
     $.checkArgument(cb);
     const client = this._getAuthClient(wallet);
     console.time('V8getUtxos');
     client
-      .getCoins({ pubKey: wallet.beAuthPublicKey2, payload: {} })
-      .then(unspent => {
+      .getCoins({
+        pubKey: wallet.beAuthPublicKey2,
+        payload: {},
+        ...params
+      })
+      .then(utxos => {
         console.timeEnd('V8getUtxos');
-        return cb(null, this._transformUtxos(unspent, height));
+        return cb(null, this._transformUtxos(utxos, height));
       })
       .catch(cb);
   }
@@ -262,13 +275,13 @@ export class V8 {
       })
       .catch(err => {
         if (count > 3) {
-          log.error('FINAL Broadcast error:', err);
+          logger.error('FINAL Broadcast error:', err);
           return cb(err);
         } else {
           count++;
           // retry
           setTimeout(() => {
-            log.info('Retrying broadcast after', count * Defaults.BROADCAST_RETRY_TIME);
+            logger.info('Retrying broadcast after', count * Defaults.BROADCAST_RETRY_TIME);
             return this.broadcast(rawTx, cb, count);
           }, count * Defaults.BROADCAST_RETRY_TIME);
         }
@@ -344,9 +357,9 @@ export class V8 {
   getTransactions(wallet, startBlock, cb) {
     console.time('V8 getTxs');
     if (startBlock) {
-      log.debug(`getTxs: startBlock ${startBlock}`);
+      logger.debug(`getTxs: startBlock ${startBlock}`);
     } else {
-      log.debug('getTxs: from 0');
+      logger.debug('getTxs: from 0');
     }
 
     const client = this._getAuthClient(wallet);
@@ -358,7 +371,8 @@ export class V8 {
       pubKey: wallet.beAuthPublicKey2,
       payload: {},
       startBlock: undefined,
-      tokenAddress: wallet.tokenAddress
+      tokenAddress: wallet.tokenAddress,
+      multisigContractAddress: wallet.multisigContractAddress
     };
 
     if (_.isNumber(startBlock)) opts.startBlock = startBlock;
@@ -382,7 +396,7 @@ export class V8 {
         try {
           tx = JSON.parse(rawTx);
         } catch (e) {
-          log.error('v8 error at JSON.parse:' + e + ' Parsing:' + rawTx + ':');
+          logger.error('v8 error at JSON.parse:' + e + ' Parsing:' + rawTx + ':');
           return cb(e);
         }
         // v8 field name differences
@@ -397,7 +411,7 @@ export class V8 {
     });
 
     txStream.on('error', e => {
-      log.error('v8 error:' + e);
+      logger.error('v8 error:' + e);
       broken = true;
       return cb(e);
     });
@@ -444,6 +458,62 @@ export class V8 {
       });
   }
 
+  getMultisigContractInstantiationInfo(opts, cb) {
+    const url = `${this.baseUrl}/ethmultisig/${opts.sender}/instantiation/${opts.txId}`;
+    console.log('[v8.js.378:url:] CHECKING CONTRACT INSTANTIATION INFO', url);
+    this.request
+      .get(url, {})
+      .then(contractInstantiationInfo => {
+        contractInstantiationInfo = JSON.parse(contractInstantiationInfo);
+        return cb(null, contractInstantiationInfo);
+      })
+      .catch(err => {
+        return cb(err);
+      });
+  }
+
+  getMultisigContractInfo(opts, cb) {
+    const url = this.baseUrl + '/ethmultisig/info/' + opts.multisigContractAddress;
+    console.log('[v8.js.378:url:] CHECKING CONTRACT INFO', url);
+    this.request
+      .get(url, {})
+      .then(contractInfo => {
+        contractInfo = JSON.parse(contractInfo);
+        return cb(null, contractInfo);
+      })
+      .catch(err => {
+        return cb(err);
+      });
+  }
+
+  getTokenContractInfo(opts, cb) {
+    const url = this.baseUrl + '/token/' + opts.tokenAddress;
+    console.log('[v8.js.378:url:] CHECKING CONTRACT INFO', url);
+    this.request
+      .get(url, {})
+      .then(contractInfo => {
+        contractInfo = JSON.parse(contractInfo);
+        return cb(null, contractInfo);
+      })
+      .catch(err => {
+        return cb(err);
+      });
+  }
+
+  getMultisigTxpsInfo(opts, cb) {
+    const url = this.baseUrl + '/ethmultisig/txps/' + opts.multisigContractAddress;
+    console.log('[v8.js.378:url:] CHECKING CONTRACT TXPS INFO', url);
+    this.request
+      .get(url, {})
+      .then(multisigTxpsInfo => {
+        multisigTxpsInfo = JSON.parse(multisigTxpsInfo);
+        return cb(null, multisigTxpsInfo);
+      })
+      .catch(err => {
+        return cb(err);
+      });
+  }
+
   estimateFee(nbBlocks, cb) {
     nbBlocks = nbBlocks || [1, 2, 6, 24];
     const result = {};
@@ -460,13 +530,13 @@ export class V8 {
 
               // only process right responses.
               if (!_.isUndefined(ret.blocks) && ret.blocks != x) {
-                log.info(`Ignoring response for ${x}:` + JSON.stringify(ret));
+                logger.info(`Ignoring response for ${x}:` + JSON.stringify(ret));
                 return icb();
               }
 
               result[x] = ret.feerate;
             } catch (e) {
-              log.warn('fee error:', e);
+              logger.warn('fee error:', e);
             }
 
             return icb();
@@ -511,7 +581,7 @@ export class V8 {
           const res = _.map(ret, 'txid');
           return cb(null, res);
         } catch (err) {
-          return cb(new Error('Could not get txid from block explorer'));
+          return cb(new Error('Could not get height from block explorer'));
         }
       })
       .catch(cb);
@@ -585,21 +655,65 @@ export class V8 {
       })
       .catch(err => {
         if (count > 3) {
-          log.error('FINAL Broadcast Masternode error:', err);
+          logger.error('FINAL Broadcast Masternode error:', err);
           return cb(err);
         } else {
           count++;
           // retry
           setTimeout(() => {
-            log.info('Retrying broadcast masternode after', count * Defaults.BROADCAST_MASTERNODE_RETRY_TIME);
+            logger.info('Retrying broadcast masternode after', count * Defaults.BROADCAST_MASTERNODE_RETRY_TIME);
             return this.broadcastMasternode(rawTx, cb, count);
           }, count * Defaults.BROADCAST_MASTERNODE_RETRY_TIME);
         }
       });
   }
 
+  // john 20220219
+  getMasternodeBlsGenerate(opts, cb) {
+    const url = this.baseUrl + '/masternode/blsgenerate';
+    this.request
+      .get(url, {})
+      .then(ret => {
+        try {
+          ret = JSON.parse(ret);
+          return cb(null, ret);
+        } catch (err) {
+          return cb(new Error('Could not get masternode blsgenerate from block explorer'));
+        }
+      })
+      .catch(cb);
+  }
+
+  getMasternodeBlsSign(opts, cb) {
+    var args = [];
+    if (typeof opts.msgHash !== 'undefined') {
+      args.push('msgHash=' + opts.msgHash);
+    }
+    if (typeof opts.masternodePrivateKey !== 'undefined') {
+      args.push('masternodePrivateKey=' + opts.masternodePrivateKey);
+      qs += '?msgHash=' + opts.msgHash;
+    }
+    var qs = '';
+    if (args.length > 0) {
+      qs = '?' + args.join('&');
+    }
+
+    const url = this.baseUrl + '/masternode/blssign/' + qs;
+    this.request
+      .get(url, {})
+      .then(ret => {
+        try {
+          ret = JSON.parse(ret);
+          return cb(null, ret);
+        } catch (err) {
+          return cb(new Error('Could not get masternode blssign from block explorer'));
+        }
+      })
+      .catch(cb);
+  }
+
   initSocket(callbacks) {
-    log.info('V8 connecting socket at:' + this.host);
+    logger.info('V8 connecting socket at:' + this.host);
     // sockets always use the first server on the pull
     const walletsSocket = io.connect(this.host, { transports: ['websocket'] });
 
@@ -619,12 +733,12 @@ export class V8 {
     };
 
     blockSocket.on('connect', () => {
-      log.info(`Connected to block ${this.getConnectionInfo()}`);
+      logger.info(`Connected to block ${this.getConnectionInfo()}`);
       blockSocket.emit('room', `/${this.chain}/${this.v8network}/inv`);
     });
 
     blockSocket.on('connect_error', () => {
-      log.error(`Error connecting to ${this.getConnectionInfo()}`);
+      logger.error(`Error connecting to ${this.getConnectionInfo()}`);
     });
 
     blockSocket.on('block', data => {
@@ -632,16 +746,16 @@ export class V8 {
     });
 
     walletsSocket.on('connect', () => {
-      log.info(`Connected to wallets ${this.getConnectionInfo()}`);
+      logger.info(`Connected to wallets ${this.getConnectionInfo()}`);
       walletsSocket.emit('room', `/${this.chain}/${this.v8network}/wallets`, getAuthPayload(this.host));
     });
 
     walletsSocket.on('connect_error', () => {
-      log.error(`Error connecting to ${this.getConnectionInfo()}  ${this.chain}/${this.v8network}`);
+      logger.error(`Error connecting to ${this.getConnectionInfo()}  ${this.chain}/${this.v8network}`);
     });
 
     walletsSocket.on('failure', err => {
-      log.error(`Error joining room ${err.message} ${this.chain}/${this.v8network}`);
+      logger.error(`Error joining room ${err.message} ${this.chain}/${this.v8network}`);
     });
 
     walletsSocket.on('coin', data => {
@@ -666,9 +780,9 @@ export class V8 {
 
 const _parseErr = (err, res) => {
   if (err) {
-    log.warn('V8 error: ', err);
+    logger.warn('V8 error: ', err);
     return 'V8 Error';
   }
-  log.warn('V8 ' + res.request.href + ' Returned Status: ' + res.statusCode);
+  logger.warn('V8 ' + res.request.href + ' Returned Status: ' + res.statusCode);
   return 'Error querying the blockchain';
 };

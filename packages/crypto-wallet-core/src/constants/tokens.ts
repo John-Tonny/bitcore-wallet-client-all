@@ -22,5 +22,35 @@ export let TOKEN_OPTS = {
     symbol: 'GUSD',
     decimal: 2,
     address: '0x056fd409e1d7a124bd7017459dfea2f387b6d5cd'
+  },
+  '0x6b175474e89094c44da98b954eedeac495271d0f': {
+    name: 'Dai ',
+    symbol: 'DAI',
+    decimal: 18,
+    address: '0x6b175474e89094c44da98b954eedeac495271d0f'
+  },
+  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': {
+    name: 'Wrapped Bitcoin',
+    symbol: 'WBTC',
+    decimal: 9,
+    address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'
+  },
+  '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce': {
+    address: '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce',
+    decimal: 18,
+    name: 'SHIBA INU',
+    symbol: 'SHIB'
+  },
+  '0x8ffb6ceeb3c41f6286eedbc97df6d711ae00bff6': {
+    address: '0x8ffb6ceeb3c41f6286eedbc97df6d711ae00bff6',
+    decimal: 18,
+    name: 'EVCL',
+    symbol: 'EVCL'
+  },
+  '0x9243A89a90Bf1d386A411a56Bb0072CE52143c8b': {
+    address: '0x9243A89a90Bf1d386A411a56Bb0072CE52143c8b',
+    decimal: 1,
+    name: 'NVCL',
+    symbol: 'NVCL'
   }
 };

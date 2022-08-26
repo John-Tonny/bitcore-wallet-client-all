@@ -14,7 +14,6 @@ var copayers = [{
   xPrivKey_44H_0H_0H: 'xprv9zWRZ7CXrC4z9xA9RRBFXohmPKbyCajWaCNTHPtwNeJwTnysHG5QK7WMqpNLVtvqGxts7WNcNtqBLfdaFdCGknDPXjLKt2E2BUrPaFDqrLh',
   xPubKey_44H_0H_0H: 'xpub6DVmxcjRgZdHNSEcXSiFtweVwMSTc3TMwRJ45nJYvyqvLbK1poPerupqh87rSoz27wvckb1CKnGZoLmLXSZyNGZtVd7neqSvdwJL6fceQpe',
 
-
   xPrivKey_44H_0H_0Ht: 'tprv8ZgxMBicQKsPcxUEtgtQ2wKpkmuNKS6R2w3UmFTUHHURv4PKGE2aGkkbQEcQs9gGsoW4zPr7VM98xdbjQuWc3cZ6bkEyKy1sywhV9gLUcUi',
   xPubKey_44H_0H_0Ht: 'tpubD6NzVbkrYhZ4WRW2nLYzSLywKoRJUmHKcEeG3mVmhZGpkYe5tcrATFNTaQRAWM3dzL2QyXoctpjkaAXruDXyc6xkF4EDGu3eQdwZXFzoFSW',
   xPubKey_44H_0H_0HtSAME: 'tpubDDsQUrZ7PqajeERTydhM6rysGUY7bRxRV3tMSLMhGtbp5syiu2Ek1MVfwACdyJwFurTXNAX4rt6cVXFwvJRDFi2BZDs6LN7ADttjrf3JHrD',
@@ -156,7 +155,7 @@ var copayers = [{
 
 module.exports.keyPair = keyPair;
 module.exports.copayers = copayers;
-module.exports.historyETH = 
+module.exports.historyETH =
 [ { id: '5ddbf1894ff1918017104cf4',
     txid:
      '0x0a0705762b283daf5ec1f6576d57befd7ee12070ee6372553b926abfa85996c4',
@@ -190,8 +189,15 @@ module.exports.historyETH =
     address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     blockTime: '2019-11-25T15:26:39.000Z',
     internal: [],
-    abiType:
-     '{"type":"ERC20","name":"transfer","params":[{"name":"_to","value":"0xeca2486a6a213fb40537658d7360ab6221eb26be","type":"address"},{"name":"_tokenId","value":"3000000","type":"uint256"}]}' },
+    abiType: '{"type":"ERC20","name":"transfer","params":[{"name":"_to","value":"0xeca2486a6a213fb40537658d7360ab6221eb26be","type":"address"},{"name":"_tokenId","value":"3000000","type":"uint256"}]}',
+    error: undefined,
+    network: 'testnet',
+    chain: 'ETH',
+    data: '0x',
+    gasPrice: 2500000000,
+    gasLimit: 163759,
+    receipt: undefined,
+    nonce: 57 },
   { id: '5ddbf1894ff1918017104cef',
     txid:
      '0x0a0705762b283daf5ec1f6576d57befd7ee12070ee6372553b926abfa85996c4',

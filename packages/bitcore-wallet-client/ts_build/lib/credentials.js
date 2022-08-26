@@ -1,186 +1,221 @@
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
-var crypto_wallet_core_1 = require("crypto-wallet-core");
-var common_1 = require("./common");
-var $ = require('preconditions').singleton();
-var _ = require('lodash');
-var Bitcore = crypto_wallet_core_1.VircleLib;
-var sjcl = require('sjcl');
-var Credentials = (function () {
-    function Credentials() {
-        this.version = 2;
-        this.account = 0;
-    }
-    Credentials.fromDerivedKey = function (opts) {
-        $.shouldBeString(opts.coin);
-        $.shouldBeString(opts.network);
-        $.shouldBeNumber(opts.account, 'Invalid account');
-        $.shouldBeString(opts.xPubKey, 'Invalid xPubKey');
-        $.shouldBeString(opts.rootPath, 'Invalid rootPath');
-        $.shouldBeString(opts.keyId, 'Invalid keyId');
-        $.shouldBeString(opts.requestPrivKey, 'Invalid requestPrivKey');
-        $.checkArgument(_.isUndefined(opts.nonCompliantDerivation));
-        opts = opts || {};
-        var x = new Credentials();
-        x.coin = opts.coin;
-        x.network = opts.network;
-        x.account = opts.account;
-        x.n = opts.n;
-        x.xPubKey = opts.xPubKey;
-        x.keyId = opts.keyId;
-        if (_.isUndefined(opts.addressType)) {
-            x.addressType = opts.n == 1 ? common_1.Constants.SCRIPT_TYPES.P2PKH : common_1.Constants.SCRIPT_TYPES.P2SH;
+exports.Credentials = void 0;
+const crypto_wallet_core_1 = require("crypto-wallet-core");
+const common_1 = require("./common");
+const $ = require('preconditions').singleton();
+const _ = require('lodash');
+const Bitcore_ = {
+    btc: crypto_wallet_core_1.BitcoreLib,
+    bch: crypto_wallet_core_1.BitcoreLibCash,
+    eth: crypto_wallet_core_1.BitcoreLib,
+    xrp: crypto_wallet_core_1.BitcoreLib,
+    doge: crypto_wallet_core_1.BitcoreLibDoge,
+    ltc: crypto_wallet_core_1.BitcoreLibLtc,
+    vcl: crypto_wallet_core_1.BitcoreLibVcl
+};
+const sjcl = require('sjcl');
+let Credentials = (() => {
+    class Credentials {
+        constructor() {
+            this.version = 2;
+            this.account = 0;
         }
-        else {
-            x.addressType = opts.addressType;
-        }
-        x.rootPath = opts.rootPath;
-        if (opts.walletPrivKey) {
-            x.addWalletPrivateKey(opts.walletPrivKey);
-        }
-        x.requestPrivKey = opts.requestPrivKey;
-        var priv = Bitcore.PrivateKey(x.requestPrivKey);
-        x.requestPubKey = priv.toPublicKey().toString();
-        var prefix = 'personalKey';
-        var entropySource = Bitcore.crypto.Hash.sha256(priv.toBuffer()).toString('hex');
-        var b = Buffer.from(entropySource, 'hex');
-        var b2 = Bitcore.crypto.Hash.sha256hmac(b, Buffer.from(prefix));
-        x.personalEncryptingKey = b2.slice(0, 16).toString('base64');
-        x.copayerId = common_1.Utils.xPubToCopayerId(x.coin, x.xPubKey);
-        x.publicKeyRing = [
-            {
-                xPubKey: x.xPubKey,
-                requestPubKey: x.requestPubKey
-            }
-        ];
-        return x;
-    };
-    Credentials.prototype.getTokenCredentials = function (token) {
-        var ret = _.cloneDeep(this);
-        ret.walletId = ret.walletId + "-" + token.address;
-        ret.coin = token.symbol.toLowerCase();
-        ret.walletName = token.name;
-        ret.token = token;
-        return ret;
-    };
-    Credentials.prototype.getRootPath = function () {
-        var _this = this;
-        var legacyRootPath = function () {
-            var purpose;
-            switch (_this.derivationStrategy) {
-                case common_1.Constants.DERIVATION_STRATEGIES.BIP45:
-                    return "m/45'";
-                case common_1.Constants.DERIVATION_STRATEGIES.BIP44:
-                    purpose = '44';
-                    break;
-                case common_1.Constants.DERIVATION_STRATEGIES.BIP48:
-                    purpose = '48';
-                    break;
-            }
-            var coin = '0';
-            if (_this.network != 'livenet' && common_1.Constants.UTXO_COINS.includes(_this.coin)) {
-                coin = '1';
-            }
-            else if (_this.coin == 'bch') {
-                if (_this.use145forBCH) {
-                    coin = '145';
-                }
-                else {
-                    coin = '0';
-                }
-            }
-            else if (_this.coin == 'btc') {
-                coin = '0';
-            }
-            else if (_this.coin == 'eth') {
-                coin = '60';
-            }
-            else if (_this.coin == 'vcl') {
-                coin = '57';
-            }
-            else if (_this.coin == 'xrp') {
-                coin = '144';
+        static fromDerivedKey(opts) {
+            $.shouldBeString(opts.coin);
+            $.shouldBeString(opts.network);
+            $.shouldBeNumber(opts.account, 'Invalid account');
+            $.shouldBeString(opts.xPubKey, 'Invalid xPubKey');
+            $.shouldBeString(opts.rootPath, 'Invalid rootPath');
+            $.shouldBeString(opts.keyId, 'Invalid keyId');
+            $.shouldBeString(opts.requestPrivKey, 'Invalid requestPrivKey');
+            $.checkArgument(_.isUndefined(opts.nonCompliantDerivation));
+            opts = opts || {};
+            var x = new Credentials();
+            x.coin = opts.coin || 'vcl';
+            x.network = opts.network;
+            x.account = opts.account;
+            x.n = opts.n;
+            x.xPubKey = opts.xPubKey;
+            x.keyId = opts.keyId;
+            if (_.isUndefined(opts.addressType)) {
+                x.addressType =
+                    opts.n == 1
+                        ? common_1.Constants.SCRIPT_TYPES.P2PKH
+                        : common_1.Constants.SCRIPT_TYPES.P2SH;
             }
             else {
-                throw new Error('unknown coin: ' + _this.coin);
+                x.addressType = opts.addressType;
             }
-            return 'm/' + purpose + "'/" + coin + "'/" + _this.account + "'";
-        };
-        if (!this.rootPath) {
-            this.rootPath = legacyRootPath();
-        }
-        return this.rootPath;
-    };
-    Credentials.fromObj = function (obj) {
-        var x = new Credentials();
-        if (!obj.version || obj.version < x.version) {
-            throw new Error('Obsolete credentials version');
-        }
-        if (obj.version != x.version) {
-            throw new Error('Bad credentials version');
-        }
-        _.each(Credentials.FIELDS, function (k) {
-            x[k] = obj[k];
-        });
-        if (x.externalSource) {
-            throw new Error('External Wallets are no longer supported');
-        }
-        x.coin = x.coin || 'vcl';
-        x.addressType = x.addressType || common_1.Constants.SCRIPT_TYPES.P2SH;
-        x.account = x.account || 0;
-        $.checkState(x.xPrivKey || x.xPubKey || x.xPrivKeyEncrypted, 'invalid input');
-        return x;
-    };
-    Credentials.prototype.toObj = function () {
-        var self = this;
-        var x = {};
-        _.each(Credentials.FIELDS, function (k) {
-            x[k] = self[k];
-        });
-        return x;
-    };
-    Credentials.prototype.addWalletPrivateKey = function (walletPrivKey) {
-        this.walletPrivKey = walletPrivKey;
-        this.sharedEncryptingKey = common_1.Utils.privateKeyToAESKey(walletPrivKey);
-    };
-    Credentials.prototype.addWalletInfo = function (walletId, walletName, m, n, copayerName, opts) {
-        opts = opts || {};
-        this.walletId = walletId;
-        this.walletName = walletName;
-        this.m = m;
-        if (opts.useNativeSegwit) {
-            this.addressType = n == 1 ? common_1.Constants.SCRIPT_TYPES.P2WPKH : common_1.Constants.SCRIPT_TYPES.P2WSH;
-        }
-        if (this.n != n && !opts.allowOverwrite) {
-            if (this.n == 1 || n == 1) {
-                throw new Error("Bad nr of copayers in addWalletInfo: this: " + this.n + " got: " + n);
+            x.rootPath = opts.rootPath;
+            if (opts.walletPrivKey) {
+                x.addWalletPrivateKey(opts.walletPrivKey);
             }
-        }
-        this.n = n;
-        if (copayerName)
-            this.copayerName = copayerName;
-        if (n == 1) {
-            this.addPublicKeyRing([
+            x.requestPrivKey = opts.requestPrivKey;
+            const priv = Bitcore_[x.coin].PrivateKey(x.requestPrivKey);
+            x.requestPubKey = priv.toPublicKey().toString();
+            const prefix = 'personalKey';
+            const entropySource = Bitcore_[x.coin].crypto.Hash.sha256(priv.toBuffer()).toString('hex');
+            const b = Buffer.from(entropySource, 'hex');
+            const b2 = Bitcore_[x.coin].crypto.Hash.sha256hmac(b, Buffer.from(prefix));
+            x.personalEncryptingKey = b2.slice(0, 16).toString('base64');
+            x.copayerId = common_1.Utils.xPubToCopayerId(x.coin, x.xPubKey);
+            x.publicKeyRing = [
                 {
-                    xPubKey: this.xPubKey,
-                    requestPubKey: this.requestPubKey
+                    xPubKey: x.xPubKey,
+                    requestPubKey: x.requestPubKey
                 }
-            ]);
+            ];
+            return x;
         }
-    };
-    Credentials.prototype.hasWalletInfo = function () {
-        return !!this.walletId;
-    };
-    Credentials.prototype.addPublicKeyRing = function (publicKeyRing) {
-        this.publicKeyRing = _.clone(publicKeyRing);
-    };
-    Credentials.prototype.isComplete = function () {
-        if (!this.m || !this.n)
-            return false;
-        if (!this.publicKeyRing || this.publicKeyRing.length != this.n)
-            return false;
-        return true;
-    };
+        getTokenCredentials(token) {
+            const ret = _.cloneDeep(this);
+            ret.walletId = `${ret.walletId}-${token.address}`;
+            ret.coin = token.symbol.toLowerCase();
+            ret.walletName = token.name;
+            ret.token = token;
+            return ret;
+        }
+        getMultisigEthCredentials(multisigEthInfo) {
+            const ret = _.cloneDeep(this);
+            ret.walletId = `${ret.walletId}-${multisigEthInfo.multisigContractAddress}`;
+            ret.walletName = multisigEthInfo.walletName;
+            ret.n = multisigEthInfo.n;
+            ret.m = multisigEthInfo.m;
+            ret.multisigEthInfo = multisigEthInfo;
+            return ret;
+        }
+        getRootPath() {
+            var legacyRootPath = () => {
+                var purpose;
+                switch (this.derivationStrategy) {
+                    case common_1.Constants.DERIVATION_STRATEGIES.BIP45:
+                        return "m/45'";
+                    case common_1.Constants.DERIVATION_STRATEGIES.BIP44:
+                        purpose = '44';
+                        break;
+                    case common_1.Constants.DERIVATION_STRATEGIES.BIP48:
+                        purpose = '48';
+                        break;
+                }
+                var coin = '0';
+                if (this.network != 'livenet' &&
+                    common_1.Constants.UTXO_COINS.includes(this.coin)) {
+                    coin = '1';
+                }
+                else if (this.coin == 'bch') {
+                    if (this.use145forBCH) {
+                        coin = '145';
+                    }
+                    else {
+                        coin = '0';
+                    }
+                }
+                else if (this.coin == 'btc') {
+                    coin = '0';
+                }
+                else if (this.coin == 'eth') {
+                    coin = '60';
+                }
+                else if (this.coin == 'xrp') {
+                    coin = '144';
+                }
+                else if (this.coin == 'doge') {
+                    coin = '3';
+                }
+                else if (this.coin == 'ltc') {
+                    coin = '2';
+                }
+                else if (this.coin == 'vcl') {
+                    coin = '57';
+                }
+                else {
+                    throw new Error('unknown coin: ' + this.coin);
+                }
+                return 'm/' + purpose + "'/" + coin + "'/" + this.account + "'";
+            };
+            if (!this.rootPath) {
+                this.rootPath = legacyRootPath();
+            }
+            return this.rootPath;
+        }
+        static fromObj(obj) {
+            var x = new Credentials();
+            if (!obj.version || obj.version < x.version) {
+                throw new Error('Obsolete credentials version');
+            }
+            if (obj.version != x.version) {
+                throw new Error('Bad credentials version');
+            }
+            _.each(Credentials.FIELDS, function (k) {
+                x[k] = obj[k];
+            });
+            if (x.externalSource) {
+                throw new Error('External Wallets are no longer supported');
+            }
+            x.coin = x.coin || 'vcl';
+            x.addressType = x.addressType || common_1.Constants.SCRIPT_TYPES.P2SH;
+            x.account = x.account || 0;
+            $.checkState(x.xPrivKey || x.xPubKey || x.xPrivKeyEncrypted, 'Failed State: x.xPrivKey | x.xPubkey | x.xPrivKeyEncrypted at fromObj');
+            return x;
+        }
+        toObj() {
+            var self = this;
+            var x = {};
+            _.each(Credentials.FIELDS, function (k) {
+                x[k] = self[k];
+            });
+            return x;
+        }
+        addWalletPrivateKey(walletPrivKey) {
+            this.walletPrivKey = walletPrivKey;
+            this.sharedEncryptingKey = common_1.Utils.privateKeyToAESKey(walletPrivKey, this.coin);
+        }
+        addWalletInfo(walletId, walletName, m, n, copayerName, opts) {
+            opts = opts || {};
+            this.walletId = walletId;
+            this.walletName = walletName;
+            this.m = m;
+            if (opts.useNativeSegwit) {
+                this.addressType =
+                    n == 1 ? common_1.Constants.SCRIPT_TYPES.P2WPKH : common_1.Constants.SCRIPT_TYPES.P2WSH;
+            }
+            if (this.n != n && !opts.allowOverwrite) {
+                if (this.n == 1 || n == 1) {
+                    throw new Error(`Bad nr of copayers in addWalletInfo: this: ${this.n} got: ${n}`);
+                }
+            }
+            this.n = n;
+            if (copayerName)
+                this.copayerName = copayerName;
+            if (n == 1) {
+                this.addPublicKeyRing([
+                    {
+                        xPubKey: this.xPubKey,
+                        requestPubKey: this.requestPubKey
+                    }
+                ]);
+            }
+        }
+        hasWalletInfo() {
+            return !!this.walletId;
+        }
+        addPublicKeyRing(publicKeyRing) {
+            this.publicKeyRing = _.clone(publicKeyRing);
+        }
+        isComplete() {
+            if (!this.m || !this.n)
+                return false;
+            if ((this.coin === 'btc' ||
+                this.coin === 'bch' ||
+                this.coin === 'doge' ||
+                this.coin === 'ltc' ||
+                this.coin === 'vcl') &&
+                (!this.publicKeyRing || this.publicKeyRing.length != this.n))
+                return false;
+            return true;
+        }
+    }
     Credentials.FIELDS = [
         'coin',
         'network',
@@ -214,9 +249,10 @@ var Credentials = (function () {
         'version',
         'rootPath',
         'keyId',
-        'token'
+        'token',
+        'multisigEthInfo'
     ];
     return Credentials;
-}());
+})();
 exports.Credentials = Credentials;
 //# sourceMappingURL=credentials.js.map
