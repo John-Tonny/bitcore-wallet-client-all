@@ -22,7 +22,8 @@ function Message(message) {
 }
 
 // Message.MAGIC_BYTES = Buffer.from('Bitcoin Signed Message:\n');
-Message.MAGIC_BYTES = Buffer.from('Syscoin Signed Message:\n');
+// Message.MAGIC_BYTES = Buffer.from('Syscoin Signed Message:\n');
+Message.MAGIC_BYTES = Buffer.from('Vircles Signed Message:\n');
 
 Message.prototype.magicHash = function magicHash() {
   var prefix1 = BufferWriter.varintBufNum(Message.MAGIC_BYTES.length);

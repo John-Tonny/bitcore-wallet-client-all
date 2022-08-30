@@ -79,6 +79,7 @@ export class API extends EventEmitter {
   password: any;
   bp_partner: string;
   bp_partner_version: string;
+  assetEnabled: boolean;
 
   static PayProV2 = PayProV2;
   static PayPro = PayPro;
@@ -115,6 +116,8 @@ export class API extends EventEmitter {
     });
 
     log.setLevel(this.logLevel);
+
+    this.assetEnabled = opts.assetEnabled || false;
   }
 
   static privateKeyEncryptionOpts = {
@@ -1483,6 +1486,11 @@ export class API extends EventEmitter {
     }
 
     opts.coin = opts.coin || 'vcl';
+
+    if (opts.coin == 'vcl' && this.assetEnabled && !opts.asset) {
+      opts.asset = {};
+      opts.asset.version = 0x02;
+    }
 
     try {
       if (opts.txExtends) {
@@ -4045,7 +4053,7 @@ export class API extends EventEmitter {
   }
 
   // john 20220219
-  // * get masternode status
+  // * get masternode bls generate
   // *
   // * @param {String} opts.coin - Optional: defaults to current wallet coin
   // * @param {Callback} cb
@@ -4054,10 +4062,12 @@ export class API extends EventEmitter {
     if (!cb) {
       cb = opts;
       opts = {};
-      log.warn('DEPRECATED WARN: isValidAddress should receive 2 parameters.');
+      log.warn(
+        'DEPRECATED WARN: getMasternodeBlsGenerate should receive 2 parameters.'
+      );
     }
 
-    if (false) {
+    if (true) {
       opts = opts || {};
 
       $.checkState(this.credentials && this.credentials.isComplete());
@@ -4125,7 +4135,7 @@ export class API extends EventEmitter {
       throw new Error('masternodePrivateKey must be hex string');
     }
 
-    if (false) {
+    if (true) {
       args.push('msgHash=' + opts.msgHash);
       args.push('masternodePrivateKey=' + opts.masternodePrivateKey);
 
@@ -4158,6 +4168,51 @@ export class API extends EventEmitter {
       signature.delete();
 
       return sig;
+    }
+  }
+
+  getMasternodeBlsFromSecret(opts, cb) {
+    if (!cb) {
+      cb = opts;
+      opts = {};
+      log.warn(
+        'DEPRECATED WARN: getMasternodeBlsFromSecret should receive 2 parameters.'
+      );
+    }
+
+    opts = opts || {};
+
+    $.checkState(this.credentials && this.credentials.isComplete());
+
+    var args = [];
+    if (opts.coin) {
+      if (!_.includes(Constants.COINS, opts.coin))
+        return cb(new Error('Invalid coin'));
+      if (opts.coin != 'vcl') {
+        return cb(new Error('coin is not supported'));
+      }
+      args.push('coin=' + opts.coin);
+    }
+
+    if (!opts.masternodePrivateKey) throw new Error('Not masternodePrivateKey');
+    if (
+      !JSUtil.isHexa(opts.masternodePrivateKey) ||
+      opts.masternodePrivateKey.length != 64
+    ) {
+      throw new Error('masternodePrivateKey must be hex string');
+    }
+
+    if (true) {
+      args.push('masternodePrivateKey=' + opts.masternodePrivateKey);
+
+      var qs = '';
+      if (args.length > 0) {
+        qs = '?' + args.join('&');
+      }
+
+      var url = '/v1/masternode/blsfromsecret/' + qs;
+      this.request.get(url, cb);
+    } else {
     }
   }
 
@@ -4548,20 +4603,43 @@ export class API extends EventEmitter {
         next => {
           if (opts.masternodePrivKey && opts.masternodePubKey) return next();
 
-          this.getMasternodeBlsGenerate({}, (err, bls) => {
-            if (err) {
-              return next(new Error('masternode bls generate error!'), err);
-            }
-            if (bls.secret && bls.secret.length != 64) {
-              return next(new Error('bls secret error!'), bls);
-            }
-            if (bls.public && bls.public.length != 96) {
-              return next(new Error('bls public error!'), bls);
-            }
-            opts.masternodePrivKey = bls.secret;
-            opts.masternodePubKey = bls.public;
-            next();
-          });
+          if (!opts.masternodePrivKey) {
+            this.getMasternodeBlsGenerate({}, (err, bls) => {
+              if (err) {
+                return next(new Error('masternode bls generate error!'), err);
+              }
+              if (bls.secret && bls.secret.length != 64) {
+                return next(new Error('bls secret error!'), bls);
+              }
+              if (bls.public && bls.public.length != 96) {
+                return next(new Error('bls public error!'), bls);
+              }
+              opts.masternodePrivKey = bls.secret;
+              opts.masternodePubKey = bls.public;
+              next();
+            });
+          } else {
+            this.getMasternodeBlsFromSecret(
+              { masternodePrivateKey: opts.masternodePrivKey },
+              (err, bls) => {
+                if (err) {
+                  return next(
+                    new Error('masternode bls from secret error!'),
+                    err
+                  );
+                }
+                if (bls.secret && bls.secret.length != 64) {
+                  return next(new Error('bls secret error!'), bls);
+                }
+                if (bls.public && bls.public.length != 96) {
+                  return next(new Error('bls public error!'), bls);
+                }
+                opts.masternodePrivKey = bls.secret;
+                opts.masternodePubKey = bls.public;
+                next();
+              }
+            );
+          }
         },
         next => {
           if (opts.ownerAddr) {

@@ -23,6 +23,7 @@ export declare class API extends EventEmitter {
     password: any;
     bp_partner: string;
     bp_partner_version: string;
+    assetEnabled: boolean;
     static PayProV2: typeof PayProV2;
     static PayPro: typeof PayPro;
     static Key: typeof Key;
@@ -173,6 +174,7 @@ export declare class API extends EventEmitter {
     signMasternode(opts: any, cb: any): any;
     getMasternodeBlsGenerate(opts: any, cb: any): any;
     getMasternodeBlsSign(opts: any): Promise<unknown>;
+    getMasternodeBlsFromSecret(opts: any, cb: any): any;
     isValidAddress(opts: any, cb: any): any;
     auditContract(opts: any, cb: any): any;
     createReward(opts: any, cb: any): void;
