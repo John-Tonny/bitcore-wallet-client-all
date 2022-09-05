@@ -98,12 +98,23 @@ class Key {
             }
             return null;
         };
-        this.isValidAddress = function (password, rootPath, coin, queryAddress, start, stop) {
+        this.isValidAddress = function (password, rootPath, coin, queryAddress, start, stop, addressType) {
             var privs = [];
             var derived = {};
             coin = coin || 'vcl';
             var derived = this.derive(password, rootPath, coin);
             var xpriv = new Bitcore_[coin].HDPrivateKey(derived);
+            var network = 'livenet';
+            addressType = addressType || 'P2PKH';
+            if (addressType == 'P2PKH') {
+                addressType = Bitcore_[coin].Address.PayToPublicKeyHash;
+            }
+            else if (addressType == 'P2WPKH') {
+                addressType = Bitcore_[coin].Address.PayToWitnessPublicKeyHash;
+            }
+            else {
+                throw new TypeError('addressType must be either P2PKH or P2WPKH.');
+            }
             start = start || 0;
             stop = stop || start + 100;
             var privKey;
@@ -111,7 +122,7 @@ class Key {
                 var path = 'm/0/' + i.toString();
                 if (!derived[path]) {
                     privKey = xpriv.deriveChild(path).privateKey;
-                    var address = privKey.publicKey.toAddress().toString();
+                    var address = privKey.publicKey.toAddress(network, addressType).toString();
                     if (address === queryAddress) {
                         return true;
                     }

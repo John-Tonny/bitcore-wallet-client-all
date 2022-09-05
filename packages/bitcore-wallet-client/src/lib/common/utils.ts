@@ -526,61 +526,62 @@ export class Utils {
           });
           unsignedTxs.push(rawTx);
         }
-      }
-      if (txp.coin == 'eth' && txp.relay.cmd == 1) {
-        chain = 'RELAY';
-        txp.chain = chain;
-        for (let index = 0; index < recipients.length; index++) {
-          var rawTx = Transactions.get({ ...txp }).createApprove({
-            ...txp,
-            ...recipients[index],
-            tag: destinationTag ? Number(destinationTag) : undefined,
-            chain,
-            nonce: Number(txp.nonce) + Number(index),
-            recipients: [recipients[index]]
-          });
-          unsignedTxs.push(rawTx);
-        }
-        txp.chain = 'ETH';
-      } else if (txp.coin == 'eth' && txp.relay.cmd == 2) {
-        chain = 'RELAY';
-        txp.chain = chain;
-        for (let index = 0; index < recipients.length; index++) {
-          var rawTx = Transactions.get({ ...txp }).createFreezeBurnERC20({
-            ...txp,
-            ...recipients[index],
-            tag: destinationTag ? Number(destinationTag) : undefined,
-            chain,
-            nonce: Number(txp.nonce) + Number(index),
-            recipients: [recipients[index]]
-          });
-          unsignedTxs.push(rawTx);
-        }
-        txp.chain = 'ETH';
-      } else if (txp.coin == 'eth' && txp.relay.cmd == 3) {
-        chain = 'RELAY';
-        txp.chain = chain;
-        var rawTx = Transactions.get({ ...txp }).createRelayTx({
-          ...txp,
-          tag: destinationTag ? Number(destinationTag) : undefined,
-          chain,
-          nonce: Number(txp.nonce)
-        });
-        unsignedTxs.push(rawTx);
-        txp.chain = 'ETH';
-      } else if (txp.coin == 'eth' && txp.relay.cmd == 4) {
-        chain = 'RELAY';
-        txp.chain = chain;
-        var rawTx = Transactions.get({ ...txp }).createRelayAssetTx({
-          ...txp,
-          tag: destinationTag ? Number(destinationTag) : undefined,
-          chain,
-          nonce: Number(txp.nonce)
-        });
-        unsignedTxs.push(rawTx);
-        txp.chain = 'ETH';
       } else {
-        throw new Error('relay cmd is invalid');
+        if (txp.coin == 'eth' && txp.relay && txp.relay.cmd == 1) {
+          chain = 'RELAY';
+          txp.chain = chain;
+          for (let index = 0; index < recipients.length; index++) {
+            var rawTx = Transactions.get({ ...txp }).createApprove({
+              ...txp,
+              ...recipients[index],
+              tag: destinationTag ? Number(destinationTag) : undefined,
+              chain,
+              nonce: Number(txp.nonce) + Number(index),
+              recipients: [recipients[index]]
+            });
+            unsignedTxs.push(rawTx);
+          }
+          txp.chain = 'ETH';
+        } else if (txp.coin == 'eth' && txp.relay && txp.relay.cmd == 2) {
+          chain = 'RELAY';
+          txp.chain = chain;
+          for (let index = 0; index < recipients.length; index++) {
+            var rawTx = Transactions.get({ ...txp }).createFreezeBurnERC20({
+              ...txp,
+              ...recipients[index],
+              tag: destinationTag ? Number(destinationTag) : undefined,
+              chain,
+              nonce: Number(txp.nonce) + Number(index),
+              recipients: [recipients[index]]
+            });
+            unsignedTxs.push(rawTx);
+          }
+          txp.chain = 'ETH';
+        } else if (txp.coin == 'eth' && txp.relay && txp.relay.cmd == 3) {
+          chain = 'RELAY';
+          txp.chain = chain;
+          var rawTx = Transactions.get({ ...txp }).createRelayTx({
+            ...txp,
+            tag: destinationTag ? Number(destinationTag) : undefined,
+            chain,
+            nonce: Number(txp.nonce)
+          });
+          unsignedTxs.push(rawTx);
+          txp.chain = 'ETH';
+        } else if (txp.coin == 'eth' && txp.relay && txp.relay.cmd == 4) {
+          chain = 'RELAY';
+          txp.chain = chain;
+          var rawTx = Transactions.get({ ...txp }).createRelayAssetTx({
+            ...txp,
+            tag: destinationTag ? Number(destinationTag) : undefined,
+            chain,
+            nonce: Number(txp.nonce)
+          });
+          unsignedTxs.push(rawTx);
+          txp.chain = 'ETH';
+        } else {
+          throw new Error('relay cmd is invalid');
+        }
       }
       return { uncheckedSerialize: () => unsignedTxs };
     }
