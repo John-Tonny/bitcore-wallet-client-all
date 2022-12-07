@@ -29,7 +29,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/John-Tonny/bitcore/tree/master/packages/vircle-lib"
+    "url": "https://github.com/John-Tonny/bitcore-wallet-client-all/tree/master/packages/vircle-lib"
   },
   "browser": {
     "request": "browser-request"

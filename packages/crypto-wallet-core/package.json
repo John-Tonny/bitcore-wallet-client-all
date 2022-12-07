@@ -32,7 +32,7 @@
     "ripple-keypairs": "git+https://git@github.com/bitpay/ripple-keypairs.git#8d3a4643a8ddfce8222786e1e5a3e85a89a5b7f5",
     "ripple-lib": "1.4.2",
     "typedarray-to-buffer": "^3.1.5",
-    "vircle-lib": "git+https://github.com/John-Tonny/vircle-lib",
+    "vircle-lib": "^8.20.4",
     "web3": "1.2.1"
   },
   "devDependencies": {
